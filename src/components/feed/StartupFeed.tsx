@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Rocket, Calendar, TrendingUp, Sparkles, Flame, Clock } from 'lucide-react';
+import { Rocket, Calendar, TrendingUp, Sparkles, Flame, Clock, Trophy, Zap, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
 import { StartupCard } from '@/components/startup/StartupCard';
 import { StartupFeedSkeleton } from '@/components/startup/StartupCardSkeleton';
 import { FeedFilter } from '@/types';
@@ -82,13 +83,16 @@ export function StartupFeed() {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('today');
   const [activeFilter, setActiveFilter] = useState<FeedFilter>('all');
   const [startups, setStartups] = useState<any[]>([]);
+  const [fallbackStartups, setFallbackStartups] = useState<any[]>([]); // For when Today is empty
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
     async function fetchStartups() {
       setIsLoading(true);
       setError(null);
+      setShowFallback(false);
       try {
         const params = new URLSearchParams();
         if (activeFilter !== 'all') {
@@ -108,6 +112,29 @@ export function StartupFeed() {
 
         const data = await res.json();
         setStartups(data.startups || []);
+
+        // If Today is empty, fetch This Week as fallback
+        if (timePeriod === 'today' && (!data.startups || data.startups.length === 0)) {
+          const fallbackParams = new URLSearchParams();
+          fallbackParams.set('period', 'week');
+          fallbackParams.set('limit', '5');
+          if (activeFilter !== 'all') {
+            const stageMap: Record<string, string> = {
+              making_money: 'MAKING_MONEY',
+              exit_ready: 'EXIT_READY',
+              for_sale: 'FOR_SALE',
+              sold: 'SOLD',
+            };
+            fallbackParams.set('stage', stageMap[activeFilter] || activeFilter);
+          }
+
+          const fallbackRes = await fetch(`/api/startups?${fallbackParams.toString()}`);
+          if (fallbackRes.ok) {
+            const fallbackData = await fallbackRes.json();
+            setFallbackStartups(fallbackData.startups || []);
+            setShowFallback(true);
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong');
       } finally {
@@ -198,27 +225,104 @@ export function StartupFeed() {
         </div>
       )}
 
-      {/* Empty State */}
+      {/* Empty State with Gamification + Fallback */}
       {!isLoading && !error && startups.length === 0 && (
-        <div className="text-center py-16 px-4">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-orange-100 mb-6">
-            <Rocket className="h-10 w-10 text-orange-500" />
-          </div>
-          <h3 className="text-xl font-semibold mb-2">
-            {timePeriod === 'today'
-              ? 'No products launched today yet'
-              : `No products found for ${timePeriod}`}
-          </h3>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            {timePeriod === 'today'
-              ? "Be the first to launch today! Submit your startup now."
-              : "Try checking a different time period or submit your own startup."}
-          </p>
-          <Link href="/submit">
-            <Button className="bg-orange-500 hover:bg-orange-600">
-              Launch Your Startup
-            </Button>
-          </Link>
+        <div className="space-y-8">
+          {/* Gamified CTA for Today */}
+          {timePeriod === 'today' && (
+            <Card className="border-2 border-dashed border-orange-300 bg-gradient-to-br from-orange-50 to-amber-50">
+              <CardContent className="py-10 px-6 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-500 mb-4 animate-pulse">
+                  <Trophy className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold mb-2">
+                  Be Today&apos;s #1 Launch
+                </h3>
+                <p className="text-muted-foreground mb-3 max-w-md mx-auto">
+                  No products launched today yet. Your startup could be featured at the top!
+                </p>
+                <div className="inline-flex items-center gap-2 text-sm text-orange-600 font-medium mb-6 bg-orange-100 px-4 py-2 rounded-full">
+                  <Zap className="h-4 w-4" />
+                  First launch today gets featured for 24 hours
+                </div>
+                <div className="flex justify-center gap-3">
+                  <Link href="/submit">
+                    <Button size="lg" className="bg-orange-500 hover:bg-orange-600 gap-2">
+                      <Rocket className="h-5 w-5" />
+                      Launch Now
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Non-Today Empty State */}
+          {timePeriod !== 'today' && (
+            <div className="text-center py-12 px-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                <Rocket className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">
+                No products found for this period
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                Try checking a different time period or submit your own startup.
+              </p>
+              <Link href="/submit">
+                <Button className="bg-orange-500 hover:bg-orange-600">
+                  Launch Your Startup
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {/* Fallback: This Week's Trending (only when Today is empty) */}
+          {showFallback && fallbackStartups.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="flex items-center gap-2 font-semibold text-lg">
+                  <TrendingUp className="h-5 w-5 text-green-500" />
+                  Trending This Week
+                  <span className="text-xs font-normal text-muted-foreground bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                    While you wait
+                  </span>
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTimePeriod('week')}
+                  className="text-green-600 hover:text-green-700 gap-1"
+                >
+                  View all
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {fallbackStartups.slice(0, 3).map((startup, index) => (
+                  <StartupCard
+                    key={startup.id}
+                    startup={{...startup, todayRank: index + 1}}
+                    showRank={false}
+                  />
+                ))}
+              </div>
+
+              {fallbackStartups.length > 3 && (
+                <div className="text-center pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setTimePeriod('week')}
+                    className="gap-2"
+                  >
+                    See {fallbackStartups.length - 3} more from this week
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
