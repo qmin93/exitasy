@@ -174,8 +174,11 @@ export function Sidebar() {
                           {startup.trendScore ? Math.round(startup.trendScore) : startup.upvoteCount}
                         </Badge>
                       </TooltipTrigger>
-                      <TooltipContent side="left" className="max-w-[200px]">
-                        <p className="text-xs">Score based on upvotes × 2 + comments × 3 + guesses</p>
+                      <TooltipContent side="left" className="max-w-[220px]">
+                        <p className="text-xs font-medium mb-1">Why Trending?</p>
+                        <p className="text-xs text-muted-foreground">
+                          {startup.whyTrending || `Upvotes×2 + Comments×3 + Guesses + Verified/Sale Bonus`}
+                        </p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
