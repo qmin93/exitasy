@@ -12,6 +12,12 @@ import {
   Eye,
   Globe,
   Loader2,
+  Calendar,
+  Rocket,
+  TrendingUp,
+  Award,
+  AlertCircle,
+  ArrowLeft,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -101,6 +107,8 @@ interface StartupData {
   guessCount: number;
   buyerInterestCount: number;
   todayRank: number | null;
+  createdAt: string;
+  launchDate: string | null;
   makers: {
     id: string;
     role: string;
@@ -212,12 +220,35 @@ export default function StartupDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="container mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold mb-4">{error || 'Startup not found'}</h1>
-          <Link href="/">
-            <Button>Back to Home</Button>
-          </Link>
-        </div>
+        <main className="container mx-auto px-4 py-8 max-w-2xl">
+          <Card className="border-2 border-dashed">
+            <CardContent className="py-12 text-center">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">
+                {error === 'Startup not found' ? 'Startup Not Found' : 'Oops!'}
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                {error === 'Startup not found'
+                  ? "This startup doesn't exist or may have been removed."
+                  : 'Something went wrong while loading this startup.'}
+              </p>
+              <div className="flex justify-center gap-3">
+                <Link href="/">
+                  <Button variant="outline">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Home
+                  </Button>
+                </Link>
+                <Link href="/submit">
+                  <Button className="bg-orange-500 hover:bg-orange-600">
+                    <Rocket className="h-4 w-4 mr-2" />
+                    Launch Your Startup
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
       </div>
     );
   }
@@ -385,22 +416,56 @@ export default function StartupDetailPage() {
                 {/* Screenshots */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Screenshots</CardTitle>
+                    <CardTitle className="text-lg">Product Preview</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
-                      <span className="text-muted-foreground">
-                        Product Screenshot
-                      </span>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                      {[1, 2, 3].map((i) => (
-                        <div
-                          key={i}
-                          className="w-20 h-14 bg-gray-100 rounded cursor-pointer hover:ring-2 ring-orange-500"
-                        />
-                      ))}
-                    </div>
+                    {startup.screenshots && startup.screenshots.length > 0 ? (
+                      <>
+                        <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
+                          <img
+                            src={startup.screenshots[0]}
+                            alt={`${startup.name} screenshot`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        {startup.screenshots.length > 1 && (
+                          <div className="flex gap-2 mt-4">
+                            {startup.screenshots.slice(0, 4).map((url, i) => (
+                              <div
+                                key={i}
+                                className="w-20 h-14 rounded cursor-pointer hover:ring-2 ring-orange-500 overflow-hidden bg-gray-100"
+                              >
+                                <img
+                                  src={url}
+                                  alt={`Screenshot ${i + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex flex-col items-center justify-center">
+                          <Globe className="h-12 w-12 text-gray-400 mb-2" />
+                          <span className="text-muted-foreground text-sm">
+                            No screenshots yet
+                          </span>
+                        </div>
+                        <a
+                          href={startup.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
+                          <Button variant="outline" className="w-full gap-2">
+                            <ExternalLink className="h-4 w-4" />
+                            Visit {startup.name}
+                          </Button>
+                        </a>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -669,6 +734,108 @@ export default function StartupDetailPage() {
                       </Badge>
                     ))}
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Timeline */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Journey
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative pl-6 border-l-2 border-gray-200 space-y-4">
+                  {/* Launch Event */}
+                  <div className="relative">
+                    <div className="absolute -left-[29px] w-4 h-4 rounded-full bg-orange-500 border-2 border-white" />
+                    <div className="text-sm">
+                      <div className="font-medium flex items-center gap-1">
+                        <Rocket className="h-3 w-3 text-orange-500" />
+                        Launched on Exitasy
+                      </div>
+                      <div className="text-muted-foreground text-xs">
+                        {formatDistanceToNow(new Date(startup.launchDate || startup.createdAt), {
+                          addSuffix: true,
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Verification Event */}
+                  {startup.verificationStatus === 'VERIFIED' && startup.lastVerifiedAt && (
+                    <div className="relative">
+                      <div className="absolute -left-[29px] w-4 h-4 rounded-full bg-green-500 border-2 border-white" />
+                      <div className="text-sm">
+                        <div className="font-medium flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                          Revenue Verified
+                          {startup.verificationProvider && (
+                            <Badge variant="outline" className="text-[10px] ml-1">
+                              via {startup.verificationProvider}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-muted-foreground text-xs">
+                          {formatDistanceToNow(new Date(startup.lastVerifiedAt), {
+                            addSuffix: true,
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* MRR Milestone */}
+                  {startup.currentMRR >= 1000 && (
+                    <div className="relative">
+                      <div className="absolute -left-[29px] w-4 h-4 rounded-full bg-blue-500 border-2 border-white" />
+                      <div className="text-sm">
+                        <div className="font-medium flex items-center gap-1">
+                          <TrendingUp className="h-3 w-3 text-blue-500" />
+                          Reached {formatMRR(startup.currentMRR)} MRR
+                        </div>
+                        <div className="text-muted-foreground text-xs">
+                          {startup.revenueAge} months of revenue
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Today Rank */}
+                  {startup.todayRank && startup.todayRank <= 10 && (
+                    <div className="relative">
+                      <div className="absolute -left-[29px] w-4 h-4 rounded-full bg-yellow-500 border-2 border-white" />
+                      <div className="text-sm">
+                        <div className="font-medium flex items-center gap-1">
+                          <Award className="h-3 w-3 text-yellow-500" />
+                          Ranked #{startup.todayRank} Today
+                        </div>
+                        <div className="text-muted-foreground text-xs">
+                          Featured product
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* For Sale */}
+                  {isForSale && (
+                    <div className="relative">
+                      <div className="absolute -left-[29px] w-4 h-4 rounded-full bg-purple-500 border-2 border-white" />
+                      <div className="text-sm">
+                        <div className="font-medium flex items-center gap-1">
+                          <Eye className="h-3 w-3 text-purple-500" />
+                          Listed for Sale
+                        </div>
+                        <div className="text-muted-foreground text-xs">
+                          {startup.askingPrice
+                            ? `$${(startup.askingPrice / 1000).toFixed(0)}K asking`
+                            : 'Contact for price'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
