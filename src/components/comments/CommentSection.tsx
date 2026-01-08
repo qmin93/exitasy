@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { ChevronUp, MessageSquare, Share2, Loader2, MoreHorizontal, Flag, Award, Target, ShoppingBag } from 'lucide-react';
+import { ChevronUp, MessageSquare, Share2, Loader2, MoreHorizontal, Flag, Award, Target, ShoppingBag, Pin } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -65,11 +65,12 @@ interface CommentItemProps {
   comment: Comment;
   authorBadges?: AuthorBadgeType[];
   isReply?: boolean;
+  isPinned?: boolean;
   onReply?: (parentId: string, content: string) => void;
   startupSlug?: string;
 }
 
-function CommentItem({ comment, authorBadges = [], isReply = false, onReply, startupSlug }: CommentItemProps) {
+function CommentItem({ comment, authorBadges = [], isReply = false, isPinned = false, onReply, startupSlug }: CommentItemProps) {
   const { data: session } = useSession();
   const [upvoted, setUpvoted] = useState(false);
   const [upvoteCount, setUpvoteCount] = useState(comment.upvotes);
@@ -116,11 +117,12 @@ function CommentItem({ comment, authorBadges = [], isReply = false, onReply, sta
       id={`comment-${comment.id}`}
       className={cn(
         'space-y-3 group',
-        isReply && 'ml-10 border-l-2 border-gray-100 pl-4'
+        isReply && 'ml-10 border-l-2 border-gray-100 pl-4',
+        isPinned && 'bg-gradient-to-r from-orange-50/50 to-transparent -mx-4 px-4 py-3 rounded-lg border-l-2 border-l-orange-400'
       )}
     >
       <div className="flex gap-3">
-        <Avatar className={cn('h-8 w-8', !isReply && 'h-10 w-10')}>
+        <Avatar className={cn('h-8 w-8', !isReply && 'h-10 w-10', isPinned && 'ring-2 ring-orange-300')}>
           <AvatarImage src={comment.user.avatar} />
           <AvatarFallback className="bg-gradient-to-br from-orange-400 to-pink-500 text-white text-xs">
             {comment.user.username.slice(0, 2).toUpperCase()}
@@ -134,6 +136,14 @@ function CommentItem({ comment, authorBadges = [], isReply = false, onReply, sta
               <span className="font-semibold text-sm hover:text-orange-600 cursor-pointer">
                 @{comment.user.username}
               </span>
+
+              {/* Pinned Badge */}
+              {isPinned && (
+                <Badge variant="outline" className="text-[10px] gap-1 py-0 h-5 bg-orange-50 text-orange-600 border-orange-200">
+                  <Pin className="h-3 w-3" />
+                  Pinned
+                </Badge>
+              )}
 
               {/* Author Badges */}
               {authorBadges.map((badgeType) => {
@@ -466,8 +476,21 @@ export function CommentSection({
     return [...new Set(badges)];
   };
 
-  // Sort comments
+  // Check if a comment is from the founder
+  const isFounderComment = (comment: Comment): boolean => {
+    return Boolean(makerId && comment.userId === makerId);
+  };
+
+  // Sort comments with founder comments pinned at top
   const sortedComments = [...localComments].sort((a, b) => {
+    // Founder comments always come first
+    const aIsFounder = isFounderComment(a);
+    const bIsFounder = isFounderComment(b);
+
+    if (aIsFounder && !bIsFounder) return -1;
+    if (!aIsFounder && bIsFounder) return 1;
+
+    // Among non-founder comments, sort by selected criteria
     if (sortBy === 'popular') {
       return b.upvotes - a.upvotes;
     }
@@ -560,6 +583,7 @@ export function CommentSection({
               key={comment.id}
               comment={comment}
               authorBadges={getCommentBadges(comment)}
+              isPinned={isFounderComment(comment)}
               onReply={handleReply}
               startupSlug={startupSlug}
             />

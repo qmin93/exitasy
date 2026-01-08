@@ -1,16 +1,26 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// Trending Score Weights (Phase 3 Formula)
+// Trending Score Weights (Phase 3 Formula v2.0)
 const WEIGHTS = {
   UPVOTE: 2,
   COMMENT: 3,
   GUESS: 1,
-  VERIFIED_BONUS: 15,      // Verified products get trust bonus
-  FOR_SALE_BONUS: 10,      // For sale products get visibility bonus
-  RECENT_ACTIVITY_MAX: 20, // Max bonus for recent activity
-  RECENCY_DECAY_HOURS: 168, // 7 days for recency decay
+  VERIFIED_BONUS: 15,           // Verified products get trust bonus
+  FOR_SALE_BONUS: 10,           // For sale products get visibility bonus
+  RECENT_ACTIVITY_MAX: 20,      // Max bonus for recent activity
+  RECENCY_DECAY_HOURS: 168,     // 7 days for recency decay
+  FOUNDER_COMMENT_BONUS: 5,     // Bonus when founder participates in comments
+  TOP_GUESSER_ENGAGEMENT: 3,    // Bonus for top guesser engagement
 };
+
+// Recency Weight Multiplier (more recent = higher multiplier)
+function getRecencyWeight(hoursAgo: number): number {
+  if (hoursAgo <= 24) return 1.5;      // Last 24h: ×1.5
+  if (hoursAgo <= 72) return 1.2;      // Last 3 days: ×1.2
+  if (hoursAgo <= 168) return 1.0;     // Last 7 days: ×1.0
+  return 0.8;                          // Older: ×0.8
+}
 
 // Ranking types
 type RankingType = 'trending' | 'today' | 'for_sale' | 'hot' | 'new';
@@ -72,7 +82,7 @@ export async function GET(req: Request) {
           where: {
             createdAt: { gte: startDate },
           },
-          select: { id: true, createdAt: true },
+          select: { id: true, createdAt: true, userId: true },
         },
         guesses: {
           where: {
@@ -126,6 +136,14 @@ export async function GET(req: Request) {
 
       // For Sale bonus
       const forSaleBonus = ['FOR_SALE', 'EXIT_READY'].includes(startup.stage) ? WEIGHTS.FOR_SALE_BONUS : 0;
+
+      // Founder comment participation bonus
+      const founderIds = startup.makers.map(m => m.user.id);
+      const hasFounderComment = startup.comments.some(c => founderIds.includes(c.userId));
+      const founderCommentBonus = hasFounderComment ? WEIGHTS.FOUNDER_COMMENT_BONUS : 0;
+
+      // Recency weight multiplier
+      const recencyWeight = getRecencyWeight(hoursAgo);
 
       // Calculate score based on type
       let trendScore: number;
@@ -196,15 +214,21 @@ export async function GET(req: Request) {
 
         case 'trending':
         default:
-          // Trending: balanced formula (Phase 3)
-          trendScore =
+          // Trending: balanced formula (Phase 3 v2.0)
+          // Base score from engagement
+          const baseScore =
             (upvotesPeriod * WEIGHTS.UPVOTE) +
             (commentsPeriod * WEIGHTS.COMMENT) +
             (guessesPeriod * WEIGHTS.GUESS) +
             recentActivityBonus +
             recencyBonus +
             verifiedBonus +
-            forSaleBonus;
+            forSaleBonus +
+            founderCommentBonus;
+
+          // Apply recency weight multiplier to final score
+          trendScore = baseScore * recencyWeight;
+
           scoreBreakdown = {
             upvotes: upvotesPeriod * WEIGHTS.UPVOTE,
             comments: commentsPeriod * WEIGHTS.COMMENT,
@@ -213,6 +237,8 @@ export async function GET(req: Request) {
             recency: recencyBonus,
             verified: verifiedBonus,
             forSale: forSaleBonus,
+            founderEngagement: founderCommentBonus,
+            recencyMultiplier: recencyWeight,
           };
           break;
       }
@@ -242,8 +268,11 @@ export async function GET(req: Request) {
           guessesPeriod,
           recentActivityBonus: Math.round(recentActivityBonus * 100) / 100,
           recencyBonus: Math.round(recencyBonus * 100) / 100,
+          recencyWeight,
           verifiedBonus,
           forSaleBonus,
+          founderCommentBonus,
+          hasFounderComment,
           scoreBreakdown,
         },
         whyTrending: generateWhyTrending(
@@ -253,6 +282,8 @@ export async function GET(req: Request) {
           hoursAgo,
           startup.verificationStatus === 'VERIFIED',
           ['FOR_SALE', 'EXIT_READY'].includes(startup.stage),
+          hasFounderComment,
+          recencyWeight,
           type
         ),
       };
@@ -285,6 +316,8 @@ function generateWhyTrending(
   hoursAgo: number,
   isVerified: boolean,
   isForSale: boolean,
+  hasFounderComment: boolean,
+  recencyWeight: number,
   type: RankingType
 ): string {
   const parts: string[] = [];
@@ -304,6 +337,7 @@ function generateWhyTrending(
   const badges: string[] = [];
   if (isVerified) badges.push('Verified');
   if (isForSale) badges.push('For Sale');
+  if (hasFounderComment) badges.push('Founder Active');
 
   // Time context
   let timeStr = '';
@@ -344,7 +378,15 @@ function generateWhyTrending(
   const badgeStr = badges.length > 0 ? ` (${badges.join(', ')})` : '';
   const timeContext = timeStr ? ` ${timeStr}` : '';
 
+  // Add recency weight indicator
+  let boostStr = '';
+  if (recencyWeight >= 1.5) {
+    boostStr = ' 🔥';
+  } else if (recencyWeight >= 1.2) {
+    boostStr = ' ⚡';
+  }
+
   return engagementStr
-    ? `${engagementStr}${timeContext}${badgeStr}`
-    : `Recently launched${badgeStr}`;
+    ? `${engagementStr}${timeContext}${badgeStr}${boostStr}`
+    : `Recently launched${badgeStr}${boostStr}`;
 }

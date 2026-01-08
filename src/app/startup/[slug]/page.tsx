@@ -19,6 +19,10 @@ import {
   AlertCircle,
   ArrowLeft,
   Flame,
+  Quote,
+  Sparkles,
+  Users,
+  Target,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -103,6 +107,9 @@ interface StartupData {
   saleMultiple: number | null;
   saleIncludes: string[];
   saleReason: string | null;
+  founderNote: string | null;
+  targetUsers: string | null;
+  monetizationModel: string | null;
   sellabilityReasons: string[];
   upvoteCount: number;
   commentCount: number;
@@ -388,6 +395,154 @@ export default function StartupDetailPage() {
               isUpvoted={upvoted}
               onUpvote={handleUpvote}
             />
+
+            {/* Key Metrics - Quick glance */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-100">
+                    <div className="text-2xl font-bold text-green-700">
+                      {formatMRR(startup.currentMRR)}
+                    </div>
+                    <div className="text-xs text-green-600 font-medium">MRR</div>
+                  </div>
+                  <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+                    <div className="text-2xl font-bold text-blue-700">
+                      +{startup.growthMoM}%
+                    </div>
+                    <div className="text-xs text-blue-600 font-medium">Growth</div>
+                  </div>
+                  {isForSale && startup.askingPrice && (
+                    <>
+                      <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg border border-purple-100">
+                        <div className="text-2xl font-bold text-purple-700">
+                          ${(startup.askingPrice / 1000).toFixed(0)}K
+                        </div>
+                        <div className="text-xs text-purple-600 font-medium">Asking</div>
+                      </div>
+                      {startup.saleMultiple && (
+                        <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg border border-orange-100">
+                          <div className="text-2xl font-bold text-orange-700">
+                            {startup.saleMultiple}x
+                          </div>
+                          <div className="text-xs text-orange-600 font-medium">Multiple</div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {!isForSale && (
+                    <>
+                      <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg border border-purple-100">
+                        <div className="text-2xl font-bold text-purple-700">
+                          {startup.revenueAge}
+                        </div>
+                        <div className="text-xs text-purple-600 font-medium">Months</div>
+                      </div>
+                      <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg border border-orange-100">
+                        <div className="text-2xl font-bold text-orange-700">
+                          {startup._count.guesses}
+                        </div>
+                        <div className="text-xs text-orange-600 font-medium">Guesses</div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Founder Note - The Story Asset ⭐ */}
+            {(startup.founderNote || startup.saleReason) && (
+              <Card className="border-l-4 border-l-orange-500 bg-gradient-to-r from-orange-50/50 to-white">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-2 bg-orange-100 rounded-full">
+                      <Quote className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-3">
+                        <h3 className="font-semibold text-lg">
+                          {isForSale ? "Why I'm Selling" : "Founder's Note"}
+                        </h3>
+                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Story
+                        </Badge>
+                      </div>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {startup.founderNote || startup.saleReason}
+                      </p>
+                      {startup.makers[0] && (
+                        <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={startup.makers[0].user.image || undefined} />
+                            <AvatarFallback>
+                              {(startup.makers[0].user.username || 'F').slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="text-sm font-medium">
+                              @{startup.makers[0].user.username}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Founder</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Product Story - What, Who, How */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Rocket className="h-5 w-5 text-blue-500" />
+                  Product Story
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* What it does */}
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    What it does
+                  </h4>
+                  <p className="text-sm">{startup.description}</p>
+                </div>
+
+                {/* Target users */}
+                {startup.targetUsers && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Target Users
+                    </h4>
+                    <p className="text-sm">{startup.targetUsers}</p>
+                  </div>
+                )}
+
+                {/* Monetization */}
+                {startup.monetizationModel && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                      <Target className="h-4 w-4" />
+                      Monetization
+                    </h4>
+                    <p className="text-sm">{startup.monetizationModel}</p>
+                  </div>
+                )}
+
+                {/* Categories */}
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {startup.categories.map((cat) => (
+                    <Badge key={cat} variant="secondary" className="text-xs">
+                      #{cat}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Tabs */}
             <Tabs defaultValue="details">

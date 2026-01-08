@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronUp, MessageSquare, Gamepad2, TrendingUp, CheckCircle, ArrowRight, Flame, DollarSign } from 'lucide-react';
+import { ChevronUp, MessageSquare, Gamepad2, TrendingUp, CheckCircle, ArrowRight, Flame, DollarSign, Info } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { StartupStage, STAGE_CONFIG } from '@/types';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -42,6 +43,10 @@ interface APIStartup {
   commentCount?: number;
   guessCount?: number;
   buyerInterestCount?: number;
+
+  // Trending
+  trendScore?: number | { score: number };
+  whyTrending?: string;
 
   // Meta
   categories: string[];
@@ -82,10 +87,20 @@ function formatMRR(mrr: number): string {
   return `$${mrr}`;
 }
 
+// Helper to extract trend score from either number or object
+function getTrendScoreValue(trendScore?: number | { score: number }): number | undefined {
+  if (typeof trendScore === 'number') return trendScore;
+  if (trendScore && typeof trendScore === 'object') return trendScore.score;
+  return undefined;
+}
+
 export function StartupCard({ startup, showRank = false, variant = 'default' }: StartupCardProps) {
   const [upvoted, setUpvoted] = useState(false);
   const [upvoteCount, setUpvoteCount] = useState(startup.upvoteCount || 0);
   const [isAnimating, setIsAnimating] = useState(false);
+
+  // Get numeric trend score
+  const trendScoreValue = getTrendScoreValue(startup.trendScore);
 
   // Convert uppercase stage from API to lowercase for STAGE_CONFIG
   const stageLower = (startup.stage?.toLowerCase() || 'making_money') as StartupStage;
@@ -301,64 +316,113 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                   </div>
                 )}
 
-                {/* Quick Actions Row */}
+                {/* Quick Actions Row - Primary action based on variant */}
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-                  <Link href={`/startup/${startup.slug}#guess`}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs gap-1 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200"
-                    >
-                      <Gamepad2 className="h-3 w-3" />
-                      Guess MRR
-                    </Button>
-                  </Link>
-                  <Link href={`/startup/${startup.slug}#comments`}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs gap-1 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
-                    >
-                      <MessageSquare className="h-3 w-3" />
-                      Comment
-                    </Button>
-                  </Link>
-                  {isForSale && (
-                    <Link href={`/startup/${startup.slug}#interest`}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs gap-1 hover:bg-green-50 hover:text-green-700 hover:border-green-200"
-                      >
-                        Express Interest
-                      </Button>
-                    </Link>
-                  )}
-                  {/* View Details CTA - pushes to the right */}
-                  <Link href={`/startup/${startup.slug}`} className="ml-auto">
-                    <span className={cn(
-                      'text-xs flex items-center gap-1 transition-colors',
-                      getCtaColor()
-                    )}>
-                      {isForSale ? (
-                        <>
-                          <DollarSign className="h-3 w-3" />
-                          View deal
-                        </>
-                      ) : showRank ? (
-                        <>
-                          <Flame className="h-3 w-3" />
-                          View launch
-                        </>
-                      ) : (
-                        <>
-                          <TrendingUp className="h-3 w-3" />
-                          View details
-                        </>
+                  {/* For Sale: View Deal is PRIMARY */}
+                  {isForSale ? (
+                    <>
+                      <Link href={`/startup/${startup.slug}`}>
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs gap-1.5 bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                        >
+                          <DollarSign className="h-3.5 w-3.5" />
+                          View Deal
+                          <ArrowRight className="h-3 w-3" />
+                        </Button>
+                      </Link>
+                      <Link href={`/startup/${startup.slug}#interest`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs gap-1 hover:bg-green-50 hover:text-green-700 hover:border-green-200"
+                        >
+                          Express Interest
+                        </Button>
+                      </Link>
+                      {/* Secondary actions - subtle */}
+                      <div className="flex items-center gap-1 ml-auto opacity-60 group-hover:opacity-100 transition-opacity">
+                        <Link href={`/startup/${startup.slug}#guess`}>
+                          <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]">
+                            <Gamepad2 className="h-3 w-3" />
+                          </Button>
+                        </Link>
+                        <Link href={`/startup/${startup.slug}#comments`}>
+                          <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]">
+                            <MessageSquare className="h-3 w-3" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Trending/Default: Upvote area is already primary (left column) */}
+                      {/* Secondary actions here */}
+                      <Link href={`/startup/${startup.slug}#guess`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs gap-1 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200"
+                        >
+                          <Gamepad2 className="h-3 w-3" />
+                          Guess MRR
+                        </Button>
+                      </Link>
+                      <Link href={`/startup/${startup.slug}#comments`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs gap-1 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          Comment
+                        </Button>
+                      </Link>
+
+                      {/* Trending Score Info - shows why this is trending */}
+                      {trendScoreValue && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-help ml-auto">
+                                <Info className="h-3 w-3" />
+                                <span>Score: {Math.round(trendScoreValue)}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[250px]">
+                              <p className="text-xs font-medium mb-1">Why this score?</p>
+                              <p className="text-xs text-muted-foreground">
+                                {startup.whyTrending || 'Upvotes×2 + Comments×3 + Guesses + Verified/Sale bonus × Recency'}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
-                      <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                    </span>
-                  </Link>
+
+                      {/* View Details - secondary for trending */}
+                      {!trendScoreValue && (
+                        <Link href={`/startup/${startup.slug}`} className="ml-auto">
+                          <span className={cn(
+                            'text-xs flex items-center gap-1 transition-colors',
+                            getCtaColor()
+                          )}>
+                            {showRank ? (
+                              <>
+                                <Flame className="h-3 w-3" />
+                                View launch
+                              </>
+                            ) : (
+                              <>
+                                <TrendingUp className="h-3 w-3" />
+                                View details
+                              </>
+                            )}
+                            <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
+                          </span>
+                        </Link>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
