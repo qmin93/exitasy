@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronUp, MessageSquare, Gamepad2, TrendingUp, CheckCircle, ArrowRight, Flame, DollarSign, Zap, Sparkles, Eye } from 'lucide-react';
+import { ChevronUp, MessageSquare, Gamepad2, TrendingUp, CheckCircle, ArrowRight, Flame, DollarSign, Zap, Sparkles, Eye, HelpCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { StartupStage, STAGE_CONFIG } from '@/types';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -397,6 +398,28 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                           <span className="text-[11px] text-muted-foreground truncate">
                             {startup.whyTrending || `${startup.upvoteCount} upvotes this week`}
                           </span>
+                          {/* How is this ranked? tooltip */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button className="flex items-center gap-1 text-[10px] text-purple-500 hover:text-purple-700 transition-colors flex-shrink-0">
+                                  <HelpCircle className="h-3 w-3" />
+                                  <span className="hidden sm:inline">How ranked?</span>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-[280px] p-3">
+                                <p className="text-xs font-semibold mb-2">ⓘ How is this ranked?</p>
+                                <div className="text-[11px] text-muted-foreground space-y-1">
+                                  <p>Upvotes × 2 + Comments × 3 + Guesses × 1</p>
+                                  <p>+ Verified Bonus (+15) + For Sale Bonus (+10)</p>
+                                  <p>× Recency Weight (1.5× if &lt;24h, 1.2× if &lt;3d)</p>
+                                </div>
+                                <p className="text-[10px] text-purple-600 mt-2 font-medium">
+                                  Real engagement, no manipulation.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       ) : (
                         <>

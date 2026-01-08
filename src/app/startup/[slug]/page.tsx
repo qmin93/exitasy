@@ -468,6 +468,64 @@ export default function StartupDetailPage() {
               onUpvote={handleUpvote}
             />
 
+            {/* ============================================ */}
+            {/* FOUNDER NOTE - Above the Fold! ⭐           */}
+            {/* Critical: First thing users see after Hero  */}
+            {/* ============================================ */}
+            {(startup.founderNote || startup.saleReason) && (
+              <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    {/* Quote Icon with glow */}
+                    <div className="p-3 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl shadow-lg shadow-orange-200 flex-shrink-0">
+                      <Quote className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      {/* Header with Story badge */}
+                      <div className="flex items-center gap-3 mb-4">
+                        <h3 className="text-xl font-bold text-gray-900">
+                          {isForSale ? "💭 Why I'm Selling" : "💭 Founder's Note"}
+                        </h3>
+                        <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs animate-pulse">
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Story
+                        </Badge>
+                      </div>
+                      {/* Story Content - larger text */}
+                      <blockquote className="text-gray-700 leading-relaxed text-base italic border-l-4 border-orange-300 pl-4">
+                        "{startup.founderNote || startup.saleReason}"
+                      </blockquote>
+                      {/* Founder Attribution */}
+                      {startup.makers[0] && (
+                        <div className="flex items-center gap-3 mt-5 pt-4 border-t border-orange-100">
+                          <Avatar className="h-10 w-10 ring-2 ring-orange-200">
+                            <AvatarImage src={startup.makers[0].user.image || undefined} />
+                            <AvatarFallback className="bg-orange-100 text-orange-700">
+                              {(startup.makers[0].user.username || 'F').slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-semibold text-gray-900">
+                              @{startup.makers[0].user.username}
+                            </div>
+                            <div className="text-xs text-orange-600 font-medium flex items-center gap-1">
+                              <Flame className="h-3 w-3" />
+                              Founder & Maker
+                            </div>
+                          </div>
+                          <Link href={`/user/${startup.makers[0].user.username}`} className="ml-auto">
+                            <Button variant="outline" size="sm" className="text-xs border-orange-200 hover:bg-orange-50">
+                              View Profile
+                            </Button>
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Key Metrics - Quick glance */}
             <Card>
               <CardContent className="p-4">
@@ -521,64 +579,6 @@ export default function StartupDetailPage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* ============================================ */}
-            {/* FOUNDER NOTE - The Story Asset ⭐           */}
-            {/* Critical: This is a trust/emotional anchor */}
-            {/* ============================================ */}
-            {(startup.founderNote || startup.saleReason) && (
-              <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 shadow-md">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    {/* Quote Icon with glow */}
-                    <div className="p-3 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl shadow-lg shadow-orange-200">
-                      <Quote className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      {/* Header with Story badge */}
-                      <div className="flex items-center gap-3 mb-4">
-                        <h3 className="text-xl font-bold text-gray-900">
-                          {isForSale ? "💭 Why I'm Selling" : "💭 Founder's Note"}
-                        </h3>
-                        <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs">
-                          <Sparkles className="h-3 w-3 mr-1" />
-                          Story
-                        </Badge>
-                      </div>
-                      {/* Story Content - larger text */}
-                      <blockquote className="text-gray-700 leading-relaxed text-base italic border-l-4 border-orange-300 pl-4">
-                        "{startup.founderNote || startup.saleReason}"
-                      </blockquote>
-                      {/* Founder Attribution */}
-                      {startup.makers[0] && (
-                        <div className="flex items-center gap-3 mt-5 pt-4 border-t border-orange-100">
-                          <Avatar className="h-10 w-10 ring-2 ring-orange-200">
-                            <AvatarImage src={startup.makers[0].user.image || undefined} />
-                            <AvatarFallback className="bg-orange-100 text-orange-700">
-                              {(startup.makers[0].user.username || 'F').slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-semibold text-gray-900">
-                              @{startup.makers[0].user.username}
-                            </div>
-                            <div className="text-xs text-orange-600 font-medium flex items-center gap-1">
-                              <Flame className="h-3 w-3" />
-                              Founder & Maker
-                            </div>
-                          </div>
-                          <Link href={`/user/${startup.makers[0].user.username}`} className="ml-auto">
-                            <Button variant="outline" size="sm" className="text-xs border-orange-200 hover:bg-orange-50">
-                              View Profile
-                            </Button>
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Product Story - What, Who, How */}
             <Card>

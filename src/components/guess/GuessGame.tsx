@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Gamepad2, CheckCircle, Trophy, Users, Loader2 } from 'lucide-react';
+import { Gamepad2, CheckCircle, Trophy, Users, Loader2, TrendingUp, Sparkles, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,41 @@ interface GuessResult {
   range: GuessRange;
   count: number;
   percentage: number;
+}
+
+// Calculate percentile based on guess accuracy
+function calculatePercentile(userGuess: GuessRange, correctRange: GuessRange, distribution: Record<string, number>): number {
+  const rangeOrder: GuessRange[] = ['RANGE_0_1K', 'RANGE_1K_5K', 'RANGE_5K_10K', 'RANGE_10K_20K', 'RANGE_20K_50K', 'RANGE_50K_PLUS'];
+  const userIndex = rangeOrder.indexOf(userGuess);
+  const correctIndex = rangeOrder.indexOf(correctRange);
+  const distance = Math.abs(userIndex - correctIndex);
+
+  // Calculate total guesses
+  const totalGuesses = Object.values(distribution).reduce((a, b) => a + b, 0) || 1;
+
+  // Calculate how many people guessed correctly or closer
+  let betterOrEqualGuesses = 0;
+  rangeOrder.forEach((range, idx) => {
+    const rangeDistance = Math.abs(idx - correctIndex);
+    if (rangeDistance <= distance) {
+      betterOrEqualGuesses += distribution[range] || 0;
+    }
+  });
+
+  // Calculate percentile (lower is better, so invert)
+  const percentile = Math.round(100 - (betterOrEqualGuesses / totalGuesses) * 100);
+  return Math.max(1, Math.min(99, percentile)); // Clamp between 1-99
+}
+
+// Get accuracy label based on distance from correct answer
+function getAccuracyLabel(userGuess: GuessRange, correctRange: GuessRange): { label: string; emoji: string; color: string } {
+  const rangeOrder: GuessRange[] = ['RANGE_0_1K', 'RANGE_1K_5K', 'RANGE_5K_10K', 'RANGE_10K_20K', 'RANGE_20K_50K', 'RANGE_50K_PLUS'];
+  const distance = Math.abs(rangeOrder.indexOf(userGuess) - rangeOrder.indexOf(correctRange));
+
+  if (distance === 0) return { label: 'Perfect!', emoji: '🎯', color: 'text-green-600' };
+  if (distance === 1) return { label: 'Very Close!', emoji: '🔥', color: 'text-orange-600' };
+  if (distance === 2) return { label: 'Close', emoji: '👍', color: 'text-yellow-600' };
+  return { label: 'Keep practicing', emoji: '💪', color: 'text-gray-600' };
 }
 
 interface GuessGameProps {
@@ -246,22 +281,47 @@ export function GuessGame({
                   isCorrect ? 'bg-green-100' : 'bg-orange-100'
                 )}
               >
-                {isCorrect ? (
-                  <>
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span className="font-semibold text-green-700">
-                      Correct! You guessed {selectedGuess ? RANGE_LABELS[selectedGuess] : ''}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Trophy className="h-5 w-5 text-orange-600" />
-                    <span className="font-semibold text-orange-700">
-                      Close! The answer was {RANGE_LABELS[correctRange]}
-                    </span>
-                  </>
-                )}
+                {(() => {
+                  const accuracy = selectedGuess ? getAccuracyLabel(selectedGuess, correctRange) : null;
+                  return isCorrect ? (
+                    <>
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <span className="font-semibold text-green-700">
+                        {accuracy?.emoji} Perfect! You nailed it!
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Target className="h-5 w-5 text-orange-600" />
+                      <span className="font-semibold text-orange-700">
+                        {accuracy?.emoji} {accuracy?.label} The answer was {RANGE_LABELS[correctRange]}
+                      </span>
+                    </>
+                  );
+                })()}
               </div>
+
+              {/* Percentile Feedback - Immediate Reward! */}
+              {selectedGuess && (
+                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Sparkles className="h-5 w-5 text-purple-500" />
+                    <span className="text-lg font-bold text-purple-700">
+                      Your estimate is in the top {calculatePercentile(selectedGuess, correctRange, distribution)}%!
+                    </span>
+                    <Sparkles className="h-5 w-5 text-purple-500" />
+                  </div>
+                  <p className="text-xs text-purple-600">
+                    {(() => {
+                      const percentile = calculatePercentile(selectedGuess, correctRange, distribution);
+                      if (percentile <= 10) return "Outstanding! You have exceptional market intuition! 🏆";
+                      if (percentile <= 25) return "Excellent guess! You're better than most! 🌟";
+                      if (percentile <= 50) return "Great job! Your market sense is above average! 💪";
+                      return "Keep playing to sharpen your estimation skills! 📈";
+                    })()}
+                  </p>
+                </div>
+              )}
 
               {/* Results Distribution */}
               <div className="space-y-2">
@@ -293,11 +353,22 @@ export function GuessGame({
 
               {/* User Stats */}
               <div className="border-t pt-3 mt-3">
-                <p className="text-sm text-center text-muted-foreground">
-                  Your accuracy: <span className="font-semibold text-foreground">78%</span>
-                  {' · '}
-                  Rank: <span className="font-semibold text-foreground">#42</span>
-                </p>
+                {selectedGuess && (
+                  <div className="flex items-center justify-center gap-4 text-sm">
+                    <div className="flex items-center gap-1.5">
+                      <TrendingUp className="h-4 w-4 text-purple-500" />
+                      <span className="text-muted-foreground">Percentile:</span>
+                      <span className="font-bold text-purple-600">
+                        Top {calculatePercentile(selectedGuess, correctRange, distribution)}%
+                      </span>
+                    </div>
+                    <span className="text-muted-foreground">·</span>
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-4 w-4 text-blue-500" />
+                      <span className="text-muted-foreground">{totalGuesses} players</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </>
