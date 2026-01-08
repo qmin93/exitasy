@@ -91,6 +91,7 @@ model User {
   comments      Comment[]
   guesses       Guess[]
   buyerInterests BuyerInterest[]
+  buyerAccessRequests BuyerAccessRequest[]
   forumThreads  ForumThread[]
   forumReplies  ForumReply[]
   notifications Notification[]
@@ -159,6 +160,7 @@ model Startup {
   comments        Comment[]
   guesses         Guess[]
   buyerInterests  BuyerInterest[]
+  buyerAccessRequests BuyerAccessRequest[]
   revenueSnapshots RevenueSnapshot[]
   eventLogs       EventLog[]
   follows         Follow[]
@@ -250,6 +252,37 @@ model BuyerInterest {
   startup     Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, startupId])
+}
+
+// ============================================
+// Buyer Access Request (Intro Request Flow)
+// ============================================
+
+model BuyerAccessRequest {
+  id          String   @id @default(cuid())
+  userId      String   // Buyer requesting access
+  startupId   String   // Startup they want access to
+
+  // Request Details
+  message     String   @db.Text // What they want to discuss
+  budgetRange String   // under_10k, 10k_25k, 25k_50k, 50k_100k, 100k_plus
+  timeline    String   // asap, 1_month, 3_months, exploring
+  buyerType   String   // first_time, serial, operator, investor
+  linkedinUrl String?  // Optional LinkedIn for verification
+
+  // Status
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewedAt  DateTime?
+  reviewNote  String?  @db.Text // Founder's note when reviewing
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startup     Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, startupId])
+  @@index([startupId, status])
 }
 
 // ============================================

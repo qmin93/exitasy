@@ -1,0 +1,204 @@
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
+
+// POST /api/startups/[slug]/intro-request - Request intro to founder
+export async function POST(
+  req: Request,
+  { params }: { params: { slug: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { slug } = params;
+    const body = await req.json();
+    const { message, budgetRange, timeline, buyerType, linkedin } = body;
+
+    // Validate required fields
+    if (!message || !budgetRange || !timeline || !buyerType) {
+      return NextResponse.json(
+        { message: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Find the startup
+    const startup = await prisma.startup.findUnique({
+      where: { slug },
+      include: {
+        makers: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!startup) {
+      return NextResponse.json({ message: 'Startup not found' }, { status: 404 });
+    }
+
+    // Check if user already sent an access request
+    const existingRequest = await prisma.buyerAccessRequest.findUnique({
+      where: {
+        userId_startupId: {
+          userId: session.user.id,
+          startupId: startup.id,
+        },
+      },
+    });
+
+    if (existingRequest) {
+      return NextResponse.json(
+        {
+          message: 'You have already sent an intro request for this startup',
+          status: existingRequest.status,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Create the buyer access request
+    const accessRequest = await prisma.buyerAccessRequest.create({
+      data: {
+        userId: session.user.id,
+        startupId: startup.id,
+        message,
+        budgetRange,
+        timeline,
+        buyerType,
+        linkedinUrl: linkedin || null,
+        status: 'PENDING',
+      },
+    });
+
+    // Also create/update BuyerInterest for tracking
+    await prisma.buyerInterest.upsert({
+      where: {
+        userId_startupId: {
+          userId: session.user.id,
+          startupId: startup.id,
+        },
+      },
+      create: {
+        userId: session.user.id,
+        startupId: startup.id,
+        isAnonymous: false,
+        message: `Intro Request: ${message.substring(0, 100)}...`,
+      },
+      update: {
+        message: `Intro Request: ${message.substring(0, 100)}...`,
+      },
+    });
+
+    // Update buyer interest count
+    await prisma.startup.update({
+      where: { id: startup.id },
+      data: {
+        buyerInterestCount: { increment: 1 },
+      },
+    });
+
+    // Log the event
+    await prisma.eventLog.create({
+      data: {
+        type: 'INTRO_REQUESTED',
+        startupId: startup.id,
+        userId: session.user.id,
+        metadata: JSON.stringify({
+          budgetRange,
+          timeline,
+          buyerType,
+          requestId: accessRequest.id,
+        }),
+      },
+    });
+
+    // Create notification for founder(s)
+    for (const maker of startup.makers) {
+      await prisma.notification.create({
+        data: {
+          userId: maker.userId,
+          type: 'BUYER_INTEREST',
+          title: 'New Intro Request',
+          message: `Someone wants to discuss acquiring ${startup.name}`,
+          link: `/dashboard/requests/${accessRequest.id}`,
+        },
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Intro request sent successfully',
+      id: accessRequest.id,
+      status: 'PENDING',
+    });
+  } catch (error) {
+    console.error('Error creating intro request:', error);
+    return NextResponse.json(
+      { message: 'Failed to send intro request' },
+      { status: 500 }
+    );
+  }
+}
+
+// GET /api/startups/[slug]/intro-request - Get user's intro request status
+export async function GET(
+  req: Request,
+  { params }: { params: { slug: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({
+        hasRequested: false,
+        status: null,
+      });
+    }
+
+    const { slug } = params;
+
+    const startup = await prisma.startup.findUnique({
+      where: { slug },
+    });
+
+    if (!startup) {
+      return NextResponse.json({ message: 'Startup not found' }, { status: 404 });
+    }
+
+    const accessRequest = await prisma.buyerAccessRequest.findUnique({
+      where: {
+        userId_startupId: {
+          userId: session.user.id,
+          startupId: startup.id,
+        },
+      },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+        reviewedAt: true,
+        reviewNote: true,
+      },
+    });
+
+    return NextResponse.json({
+      hasRequested: !!accessRequest,
+      requestId: accessRequest?.id || null,
+      status: accessRequest?.status || null,
+      createdAt: accessRequest?.createdAt || null,
+      reviewedAt: accessRequest?.reviewedAt || null,
+      reviewNote: accessRequest?.reviewNote || null,
+    });
+  } catch (error) {
+    console.error('Error checking intro request:', error);
+    return NextResponse.json(
+      { message: 'Failed to check intro request status' },
+      { status: 500 }
+    );
+  }
+}

@@ -336,129 +336,121 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                   </div>
                 )}
 
-                {/* Quick Actions Row - Primary action based on variant */}
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-                  {/* ============================================ */}
-                  {/* FOR SALE: View Deal is PRIMARY CTA           */}
-                  {/* ============================================ */}
+                {/* ============================================ */}
+                {/* QUICK ACTIONS - 2-Row Layout                */}
+                {/* Row 1: Primary actions (Deal/Interest)      */}
+                {/* Row 2: Secondary actions (Upvote/Guess)     */}
+                {/* ============================================ */}
+                <div className="mt-3 pt-3 border-t space-y-2">
                   {isForSale ? (
                     <>
-                      {/* PRIMARY: View Deal - Large, prominent green button */}
-                      <Link href={`/startup/${startup.slug}`} className="flex-shrink-0">
-                        <Button
-                          size="lg"
-                          className="h-10 px-5 text-sm font-semibold gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg shadow-green-200 hover:shadow-xl hover:shadow-green-300 transition-all"
-                        >
-                          <DollarSign className="h-4 w-4" />
-                          View Deal
-                          <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                        </Button>
-                      </Link>
-                      {/* SECONDARY: Express Interest */}
-                      <Link href={`/startup/${startup.slug}#interest`}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs gap-1.5 border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300"
-                        >
-                          <Sparkles className="h-3 w-3" />
-                          Express Interest
-                        </Button>
-                      </Link>
-                      {/* TERTIARY: Other actions - hidden until hover */}
-                      <div className="flex items-center gap-1 ml-auto opacity-0 group-hover:opacity-60 transition-opacity">
+                      {/* ROW 1: PRIMARY - Deal focused */}
+                      <div className="flex items-center gap-2">
+                        <Link href={`/startup/${startup.slug}`} className="flex-1">
+                          <Button
+                            size="default"
+                            className="w-full h-9 text-sm font-semibold gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md shadow-green-200"
+                          >
+                            <DollarSign className="h-4 w-4" />
+                            View Deal
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Link href={`/startup/${startup.slug}#interest`}>
+                          <Button
+                            variant="outline"
+                            size="default"
+                            className="h-9 px-4 text-sm gap-1.5 border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 font-medium"
+                          >
+                            <Sparkles className="h-4 w-4" />
+                            Interest
+                          </Button>
+                        </Link>
+                      </div>
+                      {/* ROW 2: SECONDARY - Community actions */}
+                      <div className="flex items-center gap-2">
                         <Link href={`/startup/${startup.slug}#guess`}>
-                          <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-gray-400">
-                            <Gamepad2 className="h-3 w-3" />
+                          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-purple-600">
+                            <Gamepad2 className="h-3.5 w-3.5" />
+                            Guess
                           </Button>
                         </Link>
                         <Link href={`/startup/${startup.slug}#comments`}>
-                          <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-gray-400">
-                            <MessageSquare className="h-3 w-3" />
+                          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-blue-600">
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            Comment
                           </Button>
                         </Link>
+                        {/* Why buy - target buyer hint */}
+                        <span className="ml-auto text-[10px] text-green-600 truncate max-w-[140px]">
+                          Best for: {startup.categories[0] || 'SaaS'} operators
+                        </span>
                       </div>
                     </>
                   ) : (
                     <>
-                      {/* ============================================ */}
-                      {/* TRENDING: Upvote (left) is PRIMARY          */}
-                      {/* Show WHY trending prominently                */}
-                      {/* ============================================ */}
-
-                      {/* Trending Score Badge - Always visible with explanation */}
-                      {trendScoreValue ? (
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          {/* Score with visual indicator */}
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-purple-50 to-purple-100 rounded-full border border-purple-200">
-                            <Zap className="h-3.5 w-3.5 text-purple-500" />
-                            <span className="text-sm font-bold text-purple-700">{Math.round(trendScoreValue)}</span>
-                          </div>
-                          {/* Why trending - always visible text */}
-                          <span className="text-[11px] text-muted-foreground truncate">
-                            {startup.whyTrending || `${startup.upvoteCount} upvotes this week`}
+                      {/* ROW 1: Trending info + View Details */}
+                      <div className="flex items-center gap-2">
+                        {trendScoreValue ? (
+                          <>
+                            {/* Score with visual indicator */}
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-purple-50 to-purple-100 rounded-full border border-purple-200">
+                              <Zap className="h-3.5 w-3.5 text-purple-500" />
+                              <span className="text-sm font-bold text-purple-700">{Math.round(trendScoreValue)}</span>
+                            </div>
+                            {/* Why trending */}
+                            <span className="text-[11px] text-muted-foreground truncate flex-1">
+                              {startup.whyTrending || `${startup.upvoteCount} upvotes this week`}
+                            </span>
+                            {/* How trending works link */}
+                            <Link href="/how-trending-works" className="flex-shrink-0">
+                              <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-purple-500 hover:text-purple-700 gap-1">
+                                <HelpCircle className="h-3 w-3" />
+                                <span className="hidden sm:inline">How?</span>
+                              </Button>
+                            </Link>
+                          </>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">
+                            {startup.upvoteCount} upvotes · {startup._count?.guesses ?? 0} guesses
                           </span>
-                          {/* How is this ranked? tooltip */}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button className="flex items-center gap-1 text-[10px] text-purple-500 hover:text-purple-700 transition-colors flex-shrink-0">
-                                  <HelpCircle className="h-3 w-3" />
-                                  <span className="hidden sm:inline">How ranked?</span>
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-[280px] p-3">
-                                <p className="text-xs font-semibold mb-2">ⓘ How is this ranked?</p>
-                                <div className="text-[11px] text-muted-foreground space-y-1">
-                                  <p>Upvotes × 2 + Comments × 3 + Guesses × 1</p>
-                                  <p>+ Verified Bonus (+15) + For Sale Bonus (+10)</p>
-                                  <p>× Recency Weight (1.5× if &lt;24h, 1.2× if &lt;3d)</p>
-                                </div>
-                                <p className="text-[10px] text-purple-600 mt-2 font-medium">
-                                  Real engagement, no manipulation.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                      ) : (
-                        <>
-                          {/* Secondary actions when no trend score */}
-                          <Link href={`/startup/${startup.slug}#guess`}>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs gap-1.5 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 font-medium"
-                            >
-                              <Gamepad2 className="h-3.5 w-3.5" />
-                              Guess & Compete
-                            </Button>
-                          </Link>
-                          <Link href={`/startup/${startup.slug}#comments`}>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs gap-1 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
-                            >
-                              <MessageSquare className="h-3 w-3" />
-                              Comment
-                            </Button>
-                          </Link>
-                        </>
-                      )}
-
-                      {/* View Details - secondary link */}
-                      <Link href={`/startup/${startup.slug}`} className="ml-auto flex-shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground"
-                        >
-                          <Eye className="h-3 w-3" />
-                          Details
-                          <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                        </Button>
-                      </Link>
+                        )}
+                        {/* View Details */}
+                        <Link href={`/startup/${startup.slug}`} className="ml-auto flex-shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1 font-medium"
+                          >
+                            <Eye className="h-3 w-3" />
+                            Details
+                            <ArrowRight className="h-3 w-3" />
+                          </Button>
+                        </Link>
+                      </div>
+                      {/* ROW 2: SECONDARY - Community actions */}
+                      <div className="flex items-center gap-2">
+                        <Link href={`/startup/${startup.slug}#guess`}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1.5 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 font-medium"
+                          >
+                            <Gamepad2 className="h-3.5 w-3.5" />
+                            Guess & Compete
+                          </Button>
+                        </Link>
+                        <Link href={`/startup/${startup.slug}#comments`}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
+                          >
+                            <MessageSquare className="h-3 w-3" />
+                            Comment
+                          </Button>
+                        </Link>
+                      </div>
                     </>
                   )}
                 </div>

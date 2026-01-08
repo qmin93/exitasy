@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, Rocket, TrendingUp, CheckCircle } from 'lucide-react';
+import { Search, Rocket, TrendingUp, CheckCircle, Users, Zap, HelpCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
@@ -17,6 +18,43 @@ const CATEGORY_CHIPS = [
   'Analytics',
   'Productivity',
   'Finance',
+];
+
+// Trust badge definitions with detailed explanations
+const TRUST_BADGES = [
+  {
+    id: 'verified',
+    icon: CheckCircle,
+    iconColor: 'text-green-500',
+    label: 'Verified Revenue',
+    shortLabel: 'Verified',
+    tooltip: {
+      title: '✓ Stripe Connected',
+      description: 'Revenue verified via Stripe Connect snapshot. No self-reported numbers.',
+    },
+  },
+  {
+    id: 'real',
+    icon: TrendingUp,
+    iconColor: 'text-orange-500',
+    label: 'Real Revenue Only',
+    shortLabel: 'Real MRR',
+    tooltip: {
+      title: '💰 No Idea-Stage',
+      description: 'Only products making real money. No "coming soon" or pre-revenue launches.',
+    },
+  },
+  {
+    id: 'buyers',
+    icon: Users,
+    iconColor: 'text-purple-500',
+    label: 'Buyer Discovery',
+    shortLabel: 'Buyers',
+    tooltip: {
+      title: '🤝 Active Buyers',
+      description: 'Verified buyers can request intros directly. Your SaaS gets seen by serious acquirers.',
+    },
+  },
 ];
 
 export function Hero() {
@@ -32,26 +70,38 @@ export function Hero() {
             <span className="text-orange-500">Get discovered.</span>
           </h1>
 
-          {/* Subheadline - Value prop */}
-          <p className="text-xl text-muted-foreground mb-6">
-            The only launch platform where verified revenue gets you noticed.
+          {/* Subheadline - Exitasy's 3 core pillars */}
+          <p className="text-xl text-muted-foreground mb-2">
+            Verified revenue · Buyer discovery · Deal signals
+          </p>
+          <p className="text-sm text-muted-foreground mb-6">
+            The only platform where real MRR gets you noticed by serious buyers.
           </p>
 
-          {/* Trust badges */}
-          <div className="flex items-center justify-center gap-4 mb-8 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              Stripe verified
-            </span>
-            <span className="flex items-center gap-1.5">
-              <TrendingUp className="h-4 w-4 text-orange-500" />
-              Real revenue only
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Rocket className="h-4 w-4 text-purple-500" />
-              Buyer discovery
-            </span>
-          </div>
+          {/* Trust badges with tooltips */}
+          <TooltipProvider>
+            <div className="flex items-center justify-center gap-3 mb-8">
+              {TRUST_BADGES.map((badge) => {
+                const Icon = badge.icon;
+                return (
+                  <Tooltip key={badge.id}>
+                    <TooltipTrigger asChild>
+                      <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all text-sm text-muted-foreground group">
+                        <Icon className={cn('h-4 w-4', badge.iconColor)} />
+                        <span className="hidden sm:inline">{badge.label}</span>
+                        <span className="sm:hidden">{badge.shortLabel}</span>
+                        <HelpCircle className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[240px] p-3">
+                      <p className="text-xs font-semibold mb-1">{badge.tooltip.title}</p>
+                      <p className="text-xs text-muted-foreground">{badge.tooltip.description}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </div>
+          </TooltipProvider>
 
           {/* Primary CTA - Submit Startup */}
           <div className="flex items-center justify-center gap-3 mb-8">

@@ -35,6 +35,7 @@ import { GuessGame } from '@/components/guess/GuessGame';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { ActionRow } from '@/components/startup/ActionRow';
 import { BuyerLock, BuyerLockBadge, LockedText } from '@/components/ui/buyer-lock';
+import { RequestIntroModal } from '@/components/startup/RequestIntroModal';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
@@ -456,6 +457,76 @@ export default function StartupDetailPage() {
                     ))}
                   </div>
                 </div>
+
+                {/* ============================================ */}
+                {/* CTA STACK - Primary actions based on state  */}
+                {/* ============================================ */}
+                <div className="flex items-center gap-3 mt-4 pt-4 border-t">
+                  {isForSale ? (
+                    <>
+                      {/* PRIMARY: Request Intro */}
+                      <RequestIntroModal
+                        startupName={startup.name}
+                        startupSlug={startup.slug}
+                        askingPrice={startup.askingPrice || undefined}
+                      >
+                        <Button
+                          size="lg"
+                          className="flex-1 h-11 text-base font-semibold gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg shadow-green-200"
+                        >
+                          <Users className="h-5 w-5" />
+                          Request Intro
+                        </Button>
+                      </RequestIntroModal>
+                      {/* SECONDARY: Express Interest */}
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={handleInterest}
+                        disabled={interested}
+                        className={cn(
+                          'h-11 px-6 gap-2 border-2',
+                          interested
+                            ? 'bg-green-50 border-green-300 text-green-700'
+                            : 'border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300'
+                        )}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        {interested ? 'Interested ✓' : 'Express Interest'}
+                      </Button>
+                      {/* TERTIARY: Save / Share */}
+                      <Button variant="ghost" size="icon" className="h-11 w-11">
+                        <Share2 className="h-5 w-5" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      {/* For non-sale: standard actions */}
+                      <Button
+                        size="lg"
+                        className={cn(
+                          'flex-1 h-11 text-base gap-2',
+                          upvoted
+                            ? 'bg-orange-500 hover:bg-orange-600'
+                            : 'bg-gray-900 hover:bg-gray-800'
+                        )}
+                        onClick={handleUpvote}
+                      >
+                        <ChevronUp className="h-5 w-5" />
+                        {upvoted ? `Upvoted (${upvoteCount})` : `Upvote (${upvoteCount})`}
+                      </Button>
+                      <a href={startup.website} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="lg" className="h-11 px-6 gap-2 border-2">
+                          <ExternalLink className="h-4 w-4" />
+                          Visit Site
+                        </Button>
+                      </a>
+                      <Button variant="ghost" size="icon" className="h-11 w-11">
+                        <Share2 className="h-5 w-5" />
+                      </Button>
+                    </>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -468,64 +539,6 @@ export default function StartupDetailPage() {
               isUpvoted={upvoted}
               onUpvote={handleUpvote}
             />
-
-            {/* ============================================ */}
-            {/* FOUNDER NOTE - Above the Fold! ⭐           */}
-            {/* Critical: First thing users see after Hero  */}
-            {/* ============================================ */}
-            {(startup.founderNote || startup.saleReason) && (
-              <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 shadow-lg">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    {/* Quote Icon with glow */}
-                    <div className="p-3 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl shadow-lg shadow-orange-200 flex-shrink-0">
-                      <Quote className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      {/* Header with Story badge */}
-                      <div className="flex items-center gap-3 mb-4">
-                        <h3 className="text-xl font-bold text-gray-900">
-                          {isForSale ? "💭 Why I'm Selling" : "💭 Founder's Note"}
-                        </h3>
-                        <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs animate-pulse">
-                          <Sparkles className="h-3 w-3 mr-1" />
-                          Story
-                        </Badge>
-                      </div>
-                      {/* Story Content - larger text */}
-                      <blockquote className="text-gray-700 leading-relaxed text-base italic border-l-4 border-orange-300 pl-4">
-                        "{startup.founderNote || startup.saleReason}"
-                      </blockquote>
-                      {/* Founder Attribution */}
-                      {startup.makers[0] && (
-                        <div className="flex items-center gap-3 mt-5 pt-4 border-t border-orange-100">
-                          <Avatar className="h-10 w-10 ring-2 ring-orange-200">
-                            <AvatarImage src={startup.makers[0].user.image || undefined} />
-                            <AvatarFallback className="bg-orange-100 text-orange-700">
-                              {(startup.makers[0].user.username || 'F').slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-semibold text-gray-900">
-                              @{startup.makers[0].user.username}
-                            </div>
-                            <div className="text-xs text-orange-600 font-medium flex items-center gap-1">
-                              <Flame className="h-3 w-3" />
-                              Founder & Maker
-                            </div>
-                          </div>
-                          <Link href={`/user/${startup.makers[0].user.username}`} className="ml-auto">
-                            <Button variant="outline" size="sm" className="text-xs border-orange-200 hover:bg-orange-50">
-                              View Profile
-                            </Button>
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Key Metrics - Quick glance */}
             <Card>
@@ -632,21 +645,52 @@ export default function StartupDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Tabs */}
-            <Tabs defaultValue="details">
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="revenue">Revenue</TabsTrigger>
-                {startup.sellabilityReasons.length > 0 && (
-                  <TabsTrigger value="sellability">Why Sellable</TabsTrigger>
+            {/* ============================================ */}
+            {/* MAIN TABS - Reorganized Content Structure  */}
+            {/* Overview | Metrics | Deal 🔒 | Founder | Comments */}
+            {/* ============================================ */}
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="w-full justify-start bg-white border rounded-lg p-1 h-auto flex-wrap">
+                <TabsTrigger value="overview" className="gap-1.5 data-[state=active]:bg-gray-100">
+                  <Globe className="h-4 w-4" />
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="metrics" className="gap-1.5 data-[state=active]:bg-gray-100">
+                  <TrendingUp className="h-4 w-4" />
+                  Metrics
+                </TabsTrigger>
+                {isForSale && (
+                  <TabsTrigger value="deal" className="gap-1.5 data-[state=active]:bg-green-100 data-[state=active]:text-green-700">
+                    <BuyerLockBadge />
+                    Deal
+                  </TabsTrigger>
                 )}
+                {(startup.founderNote || startup.saleReason) && (
+                  <TabsTrigger value="founder-note" className="gap-1.5 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700">
+                    <Quote className="h-4 w-4" />
+                    Founder Note
+                  </TabsTrigger>
+                )}
+                <TabsTrigger value="comments" className="gap-1.5 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700">
+                  <MessageSquare className="h-4 w-4" />
+                  Comments
+                  <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
+                    {transformedComments.length}
+                  </Badge>
+                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="details" className="space-y-6">
-                {/* Screenshots */}
+              {/* ============================================ */}
+              {/* OVERVIEW TAB - Product Story & Screenshots  */}
+              {/* ============================================ */}
+              <TabsContent value="overview" className="space-y-6 mt-4">
+                {/* Screenshots / Preview */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Product Preview</CardTitle>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Eye className="h-5 w-5 text-blue-500" />
+                      Product Preview
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {startup.screenshots && startup.screenshots.length > 0 ? (
@@ -699,69 +743,124 @@ export default function StartupDetailPage() {
                   </CardContent>
                 </Card>
 
-                {/* Description */}
+                {/* About / Description */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">About</CardTitle>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-purple-500" />
+                      About
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">{startup.description}</p>
+                  <CardContent className="space-y-4">
+                    <p className="text-muted-foreground leading-relaxed">{startup.description}</p>
 
-                    <div className="flex flex-wrap gap-2 mt-4">
+                    {startup.targetUsers && (
+                      <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <h4 className="text-sm font-medium text-blue-700 mb-1 flex items-center gap-1.5">
+                          <Users className="h-4 w-4" />
+                          Target Users
+                        </h4>
+                        <p className="text-sm text-blue-600">{startup.targetUsers}</p>
+                      </div>
+                    )}
+
+                    {startup.monetizationModel && (
+                      <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                        <h4 className="text-sm font-medium text-green-700 mb-1 flex items-center gap-1.5">
+                          <Target className="h-4 w-4" />
+                          Monetization
+                        </h4>
+                        <p className="text-sm text-green-600">{startup.monetizationModel}</p>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-2 pt-2">
                       {startup.categories.map((cat) => (
-                        <Badge key={cat} variant="secondary">
-                          #{cat}
-                        </Badge>
+                        <Link key={cat} href={`/category/${cat.toLowerCase()}`}>
+                          <Badge variant="secondary" className="hover:bg-muted cursor-pointer">
+                            #{cat}
+                          </Badge>
+                        </Link>
                       ))}
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Why Sellable (if applicable) */}
+                {startup.sellabilityReasons.length > 0 && (
+                  <Card className="border-green-200 bg-gradient-to-br from-green-50/50 to-white">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        Why This Is Sellable
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3">
+                        {startup.sellabilityReasons.map((reason, index) => (
+                          <li key={index} className="flex items-start gap-3">
+                            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                            <span>{reason}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
-              <TabsContent value="revenue" className="space-y-6">
+              {/* ============================================ */}
+              {/* METRICS TAB - Revenue & Growth Data         */}
+              {/* ============================================ */}
+              <TabsContent value="metrics" className="space-y-6 mt-4">
                 {/* Revenue Stats */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-green-500" />
                       Revenue Stats
                       {startup.verificationStatus === 'VERIFIED' && startup.verificationProvider && (
                         <Badge
                           variant="outline"
                           className="ml-2 bg-green-50 text-green-700"
                         >
+                          <CheckCircle className="h-3 w-3 mr-1" />
                           Verified via {startup.verificationProvider}
                         </Badge>
                       )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center p-4 bg-gray-50 rounded-lg">
-                        <div className="text-2xl font-bold">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-100">
+                        <div className="text-2xl font-bold text-green-700">
                           {formatMRR(startup.currentMRR)}
                         </div>
-                        <div className="text-sm text-muted-foreground">MRR</div>
+                        <div className="text-sm text-green-600 font-medium">MRR</div>
                       </div>
-                      <div className="text-center p-4 bg-gray-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-600">
+                      <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+                        <div className="text-2xl font-bold text-blue-700">
                           +{startup.growthMoM}%
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          Growth MoM
-                        </div>
+                        <div className="text-sm text-blue-600 font-medium">Growth MoM</div>
                       </div>
-                      <div className="text-center p-4 bg-gray-50 rounded-lg">
-                        <div className="text-2xl font-bold">
+                      <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg border border-purple-100">
+                        <div className="text-2xl font-bold text-purple-700">
                           {startup.revenueAge} mo
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          Revenue Age
+                        <div className="text-sm text-purple-600 font-medium">Revenue Age</div>
+                      </div>
+                      <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg border border-orange-100">
+                        <div className="text-2xl font-bold text-orange-700">
+                          ${(startup.currentMRR * 12 / 1000).toFixed(0)}K
                         </div>
+                        <div className="text-sm text-orange-600 font-medium">ARR</div>
                       </div>
                     </div>
 
                     {startup.lastVerifiedAt && (
-                      <p className="text-xs text-muted-foreground mt-4 text-center">
+                      <p className="text-xs text-muted-foreground mt-4 text-center flex items-center justify-center gap-1">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
                         Last verified:{' '}
                         {formatDistanceToNow(new Date(startup.lastVerifiedAt), {
                           addSuffix: true,
@@ -771,24 +870,97 @@ export default function StartupDetailPage() {
                   </CardContent>
                 </Card>
 
-                {/* For Sale Details */}
+                {/* Engagement Metrics */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Users className="h-5 w-5 text-blue-500" />
+                      Community Engagement
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="text-center p-4 bg-orange-50 rounded-lg">
+                        <div className="text-2xl font-bold text-orange-600">{upvoteCount}</div>
+                        <div className="text-sm text-orange-600/80">Upvotes</div>
+                      </div>
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{transformedComments.length}</div>
+                        <div className="text-sm text-blue-600/80">Comments</div>
+                      </div>
+                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                        <div className="text-2xl font-bold text-purple-600">{startup._count.guesses}</div>
+                        <div className="text-sm text-purple-600/80">Guesses</div>
+                      </div>
+                      {isForSale && (
+                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                          <div className="text-2xl font-bold text-green-600">{interestCount}</div>
+                          <div className="text-sm text-green-600/80">Interested</div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Sale Pricing Summary (if for sale) */}
                 {isForSale && startup.askingPrice && (
-                  <Card>
+                  <Card className="border-green-200 bg-gradient-to-br from-green-50/50 to-white">
                     <CardHeader>
-                      <CardTitle className="text-lg">For Sale Details</CardTitle>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Flame className="h-5 w-5 text-green-500" />
+                        Sale Pricing
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent>
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 bg-blue-50 rounded-lg">
-                          <div className="text-2xl font-bold text-blue-700">
+                        <div className="p-4 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg border border-green-200">
+                          <div className="text-3xl font-bold text-green-700">
                             ${(startup.askingPrice / 1000).toFixed(0)}K
                           </div>
-                          <div className="text-sm text-blue-600">
-                            Asking Price
-                          </div>
+                          <div className="text-sm text-green-600 font-medium">Asking Price</div>
                         </div>
                         {startup.saleMultiple && (
-                          <div className="p-4 bg-blue-50 rounded-lg">
+                          <div className="p-4 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg border border-blue-200">
+                            <div className="text-3xl font-bold text-blue-700">
+                              {startup.saleMultiple}x
+                            </div>
+                            <div className="text-sm text-blue-600 font-medium">Revenue Multiple</div>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-center text-muted-foreground mt-4">
+                        See the <span className="font-medium text-green-600">Deal</span> tab for full acquisition details
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* ============================================ */}
+              {/* DEAL TAB - Buyer-Only Acquisition Details   */}
+              {/* 🔒 Locked for non-buyers                    */}
+              {/* ============================================ */}
+              {isForSale && (
+                <TabsContent value="deal" className="space-y-6 mt-4">
+                  <Card className="border-green-200">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Flame className="h-5 w-5 text-green-500" />
+                        Acquisition Details
+                        <Badge className="bg-green-100 text-green-700 ml-2">For Sale</Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Public Sale Info */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                          <div className="text-2xl font-bold text-green-700">
+                            ${((startup.askingPrice || 0) / 1000).toFixed(0)}K
+                          </div>
+                          <div className="text-sm text-green-600">Asking Price</div>
+                        </div>
+                        {startup.saleMultiple && (
+                          <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
                             <div className="text-2xl font-bold text-blue-700">
                               {startup.saleMultiple}x
                             </div>
@@ -797,29 +969,24 @@ export default function StartupDetailPage() {
                         )}
                       </div>
 
+                      {/* What's Included */}
                       {startup.saleIncludes && startup.saleIncludes.length > 0 && (
-                        <div>
-                          <h4 className="font-medium mb-2">Includes:</h4>
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <h4 className="font-semibold mb-3 flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            What's Included
+                          </h4>
                           <div className="flex flex-wrap gap-2">
                             {startup.saleIncludes.map((item) => (
-                              <Badge key={item} variant="outline">
-                                {item}
+                              <Badge key={item} variant="outline" className="bg-white">
+                                ✓ {item}
                               </Badge>
                             ))}
                           </div>
                         </div>
                       )}
 
-                      {startup.saleReason && (
-                        <div>
-                          <h4 className="font-medium mb-2">Why selling:</h4>
-                          <p className="text-muted-foreground">
-                            {startup.saleReason}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Who is this for? - Target Buyer Profile */}
+                      {/* Who is this for? */}
                       <div className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg border border-green-200">
                         <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
                           <Target className="h-4 w-4" />
@@ -841,38 +1008,74 @@ export default function StartupDetailPage() {
                         </div>
                       </div>
 
-                      {/* Buyer-Only Data - Locked for free users */}
-                      <BuyerLock
-                        feature="Detailed Financial Data"
-                        description="Access revenue breakdown, expense details, customer metrics, and direct contact with the founder."
-                        requiredPlan="buyer"
-                      >
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 bg-gray-50 rounded-lg">
-                              <div className="text-lg font-bold">$8,450</div>
-                              <div className="text-xs text-muted-foreground">Last 30d Revenue</div>
-                            </div>
-                            <div className="p-3 bg-gray-50 rounded-lg">
-                              <div className="text-lg font-bold">$2,100</div>
-                              <div className="text-xs text-muted-foreground">Monthly Expenses</div>
-                            </div>
-                            <div className="p-3 bg-gray-50 rounded-lg">
-                              <div className="text-lg font-bold">156</div>
-                              <div className="text-xs text-muted-foreground">Active Customers</div>
-                            </div>
-                            <div className="p-3 bg-gray-50 rounded-lg">
-                              <div className="text-lg font-bold">4.2%</div>
-                              <div className="text-xs text-muted-foreground">Monthly Churn</div>
-                            </div>
-                          </div>
-                          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <div className="text-sm font-medium text-blue-700">Contact Founder</div>
-                            <div className="text-xs text-blue-600">Send a direct message to discuss acquisition</div>
-                          </div>
-                        </div>
-                      </BuyerLock>
+                      {/* ===== BUYER-ONLY SECTION ===== */}
+                      <div className="border-t pt-4">
+                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-muted-foreground">
+                          <BuyerLockBadge />
+                          Buyer-Only Information
+                        </h4>
 
+                        <BuyerLock
+                          feature="Detailed Financial Data"
+                          description="Access revenue breakdown, expense details, customer metrics, and direct contact with the founder."
+                          requiredPlan="buyer"
+                        >
+                          <div className="space-y-4">
+                            {/* Detailed Financials */}
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="p-3 bg-gray-50 rounded-lg">
+                                <div className="text-lg font-bold">$8,450</div>
+                                <div className="text-xs text-muted-foreground">Last 30d Revenue</div>
+                              </div>
+                              <div className="p-3 bg-gray-50 rounded-lg">
+                                <div className="text-lg font-bold">$2,100</div>
+                                <div className="text-xs text-muted-foreground">Monthly Expenses</div>
+                              </div>
+                              <div className="p-3 bg-gray-50 rounded-lg">
+                                <div className="text-lg font-bold">156</div>
+                                <div className="text-xs text-muted-foreground">Active Customers</div>
+                              </div>
+                              <div className="p-3 bg-gray-50 rounded-lg">
+                                <div className="text-lg font-bold">4.2%</div>
+                                <div className="text-xs text-muted-foreground">Monthly Churn</div>
+                              </div>
+                            </div>
+
+                            {/* Traffic & Tech Stack */}
+                            <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                              <h5 className="text-sm font-medium text-purple-700 mb-2">Tech Stack</h5>
+                              <div className="flex flex-wrap gap-2">
+                                <Badge variant="outline" className="bg-white">Next.js</Badge>
+                                <Badge variant="outline" className="bg-white">PostgreSQL</Badge>
+                                <Badge variant="outline" className="bg-white">Stripe</Badge>
+                                <Badge variant="outline" className="bg-white">Vercel</Badge>
+                              </div>
+                            </div>
+
+                            {/* Contact Founder */}
+                            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="font-semibold text-green-800">Contact Founder</div>
+                                  <div className="text-xs text-green-600">Send a direct message to discuss acquisition</div>
+                                </div>
+                                <RequestIntroModal
+                                  startupName={startup.name}
+                                  startupSlug={startup.slug}
+                                  askingPrice={startup.askingPrice || undefined}
+                                >
+                                  <Button className="bg-green-500 hover:bg-green-600">
+                                    <Users className="h-4 w-4 mr-2" />
+                                    Request Intro
+                                  </Button>
+                                </RequestIntroModal>
+                              </div>
+                            </div>
+                          </div>
+                        </BuyerLock>
+                      </div>
+
+                      {/* Interest Count & CTA */}
                       <div className="flex items-center justify-between pt-4 border-t">
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Eye className="h-4 w-4" />
@@ -887,89 +1090,144 @@ export default function StartupDetailPage() {
                               : 'bg-blue-500 hover:bg-blue-600'
                           )}
                         >
-                          {interested ? "You're Interested" : "I'm Interested"}
+                          {interested ? "You're Interested ✓" : "Express Interest"}
                         </Button>
                       </div>
                     </CardContent>
                   </Card>
-                )}
-              </TabsContent>
+                </TabsContent>
+              )}
 
-              {startup.sellabilityReasons.length > 0 && (
-                <TabsContent value="sellability">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Why This Is Sellable</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-3">
-                        {startup.sellabilityReasons.map((reason, index) => (
-                          <li key={index} className="flex items-start gap-3">
-                            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                            <span>{reason}</span>
-                          </li>
-                        ))}
-                      </ul>
+              {/* ============================================ */}
+              {/* FOUNDER NOTE TAB - Story from the Maker     */}
+              {/* ============================================ */}
+              {(startup.founderNote || startup.saleReason) && (
+                <TabsContent value="founder-note" className="mt-4">
+                  <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 via-white to-amber-50">
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        {/* Quote Icon with glow */}
+                        <div className="p-3 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl shadow-lg shadow-orange-200 flex-shrink-0">
+                          <Quote className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          {/* Header with Story badge */}
+                          <div className="flex items-center gap-3 mb-4">
+                            <h3 className="text-xl font-bold text-gray-900">
+                              {isForSale ? "Why I'm Selling" : "Founder's Note"}
+                            </h3>
+                            <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs">
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              Story
+                            </Badge>
+                          </div>
+                          {/* Story Content */}
+                          <blockquote className="text-gray-700 leading-relaxed text-base italic border-l-4 border-orange-300 pl-4 mb-6">
+                            "{startup.founderNote || startup.saleReason}"
+                          </blockquote>
+
+                          {/* Sale Reason (if different from founderNote) */}
+                          {isForSale && startup.saleReason && startup.founderNote && startup.saleReason !== startup.founderNote && (
+                            <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                              <h4 className="text-sm font-semibold text-yellow-800 mb-2">Why Selling?</h4>
+                              <p className="text-sm text-yellow-700">{startup.saleReason}</p>
+                            </div>
+                          )}
+
+                          {/* Founder Attribution */}
+                          {startup.makers[0] && (
+                            <div className="flex items-center gap-3 pt-4 border-t border-orange-100">
+                              <Avatar className="h-12 w-12 ring-2 ring-orange-200">
+                                <AvatarImage src={startup.makers[0].user.image || undefined} />
+                                <AvatarFallback className="bg-orange-100 text-orange-700">
+                                  {(startup.makers[0].user.username || 'F').slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="font-semibold text-gray-900">
+                                  @{startup.makers[0].user.username}
+                                </div>
+                                <div className="text-xs text-orange-600 font-medium flex items-center gap-1">
+                                  <Flame className="h-3 w-3" />
+                                  Founder & Maker
+                                </div>
+                                {startup.makers[0].user.bio && (
+                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                    {startup.makers[0].user.bio}
+                                  </p>
+                                )}
+                              </div>
+                              <Link href={`/user/${startup.makers[0].user.username}`}>
+                                <Button variant="outline" size="sm" className="border-orange-200 hover:bg-orange-50">
+                                  View Profile
+                                </Button>
+                              </Link>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
               )}
-            </Tabs>
 
-            {/* ============================================ */}
-            {/* COMMUNITY SECTION - Discussion Hub          */}
-            {/* Founder comments are pinned at top          */}
-            {/* ============================================ */}
-            <Card id="discussion-section" className="border-t-4 border-t-blue-500">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Users className="h-5 w-5 text-blue-600" />
+              {/* ============================================ */}
+              {/* COMMENTS TAB - Community Discussion          */}
+              {/* Founder comments are pinned at top          */}
+              {/* ============================================ */}
+              <TabsContent value="comments" className="mt-4">
+                <Card id="discussion-section" className="border-t-4 border-t-blue-500">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-xl flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <MessageSquare className="h-5 w-5 text-blue-600" />
+                        </div>
+                        Discussion
+                        <Badge className="bg-blue-100 text-blue-700">{transformedComments.length}</Badge>
+                      </CardTitle>
+                      {/* Role Legend */}
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                          Founder
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                          Top Guesser
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          Buyer
+                        </span>
+                      </div>
                     </div>
-                    Community
-                    <Badge className="bg-blue-100 text-blue-700">{transformedComments.length}</Badge>
-                  </CardTitle>
-                  {/* Role Legend */}
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                      Founder
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                      Top Guesser
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      Buyer
-                    </span>
-                  </div>
-                </div>
-                {/* Founder active indicator */}
-                {startup.makers[0] && (
-                  <div className="flex items-center gap-2 mt-3 p-2 bg-orange-50 rounded-lg border border-orange-100">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={startup.makers[0].user.image || undefined} />
-                      <AvatarFallback className="text-xs bg-orange-200 text-orange-700">
-                        {(startup.makers[0].user.username || 'F').slice(0, 1)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-xs text-orange-700">
-                      <span className="font-medium">@{startup.makers[0].user.username}</span> is the founder. Their comments are pinned.
-                    </span>
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent>
-                <CommentSection
-                  comments={transformedComments}
-                  makerId={startup.makers[0]?.user?.id}
-                  startupId={startup.id}
-                  startupSlug={startup.slug}
-                />
-              </CardContent>
-            </Card>
+                    {/* Founder active indicator */}
+                    {startup.makers[0] && (
+                      <div className="flex items-center gap-2 mt-3 p-2 bg-orange-50 rounded-lg border border-orange-100">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={startup.makers[0].user.image || undefined} />
+                          <AvatarFallback className="text-xs bg-orange-200 text-orange-700">
+                            {(startup.makers[0].user.username || 'F').slice(0, 1)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs text-orange-700">
+                          <span className="font-medium">@{startup.makers[0].user.username}</span> is the founder. Their comments are pinned.
+                        </span>
+                      </div>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <CommentSection
+                      comments={transformedComments}
+                      makerId={startup.makers[0]?.user?.id}
+                      startupId={startup.id}
+                      startupSlug={startup.slug}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
 
             {/* Action Row - Bottom */}
             <ActionRow
