@@ -428,7 +428,7 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                           </Button>
                         </Link>
                       </div>
-                      {/* ROW 2: SECONDARY - Community actions */}
+                      {/* ROW 2: SECONDARY - Community actions + Why watch hook */}
                       <div className="flex items-center gap-2">
                         <Link href={`/startup/${startup.slug}#guess`}>
                           <Button
@@ -450,6 +450,14 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                             Comment
                           </Button>
                         </Link>
+                        {/* Why watch hook - acquisition potential hint */}
+                        <span className="ml-auto text-[10px] text-orange-600 truncate max-w-[160px]">
+                          {startup.growthMoM > 20
+                            ? `🔥 ${startup.growthMoM}% MoM growth`
+                            : startup.currentMRR >= 5000
+                              ? `💰 ${formatMRR(startup.currentMRR)} proven revenue`
+                              : `✨ Early ${startup.categories[0] || 'SaaS'} opportunity`}
+                        </span>
                       </div>
                     </>
                   )}

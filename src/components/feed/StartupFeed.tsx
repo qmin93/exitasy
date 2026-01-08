@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Rocket, Calendar, TrendingUp, Flame, Clock, Trophy, Zap, ArrowRight, Sparkles } from 'lucide-react';
+import { Rocket, Calendar, TrendingUp, Flame, Clock, Trophy, Zap, ArrowRight, Sparkles, HelpCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -248,8 +248,12 @@ export function StartupFeed() {
                               TOP 5
                             </Badge>
                           </h2>
-                          <p className="text-sm opacity-90">
+                          <p className="text-sm opacity-90 flex items-center gap-1">
                             Products gaining the most traction right now
+                            <Link href="/how-trending-works" className="inline-flex items-center gap-1 hover:underline underline-offset-2">
+                              <HelpCircle className="h-3.5 w-3.5" />
+                              <span className="text-xs">How it works</span>
+                            </Link>
                           </p>
                         </div>
                       </div>
@@ -306,8 +310,12 @@ export function StartupFeed() {
                   </div>
                   <div>
                     <h2 className="font-bold text-lg">Trending This Week</h2>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
                       Based on upvotes, comments & activity
+                      <Link href="/how-trending-works" className="inline-flex items-center gap-0.5 text-purple-600 hover:underline underline-offset-2">
+                        <HelpCircle className="h-3 w-3" />
+                        <span>How?</span>
+                      </Link>
                     </p>
                   </div>
                 </div>
