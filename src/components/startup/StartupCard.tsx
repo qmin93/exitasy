@@ -286,18 +286,20 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                 </div>
 
                 {/* Categories - Outside of Link to avoid nesting */}
-                <div className="flex items-center gap-2 mt-3">
-                  {startup.categories.map((category) => (
-                    <Link
-                      key={category}
-                      href={`/category/${category.toLowerCase()}`}
-                    >
-                      <span className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                        #{category}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
+                {Array.isArray(startup.categories) && startup.categories.length > 0 && (
+                  <div className="flex items-center gap-2 mt-3">
+                    {startup.categories.map((category) => (
+                      <Link
+                        key={category}
+                        href={`/category/${category.toLowerCase()}`}
+                      >
+                        <span className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                          #{category}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
 
                 {/* Quick Actions Row */}
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t">
