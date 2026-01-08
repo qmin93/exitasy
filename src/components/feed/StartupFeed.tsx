@@ -245,13 +245,19 @@ export function StartupFeed() {
                   <Zap className="h-4 w-4" />
                   First launch today gets featured for 24 hours
                 </div>
-                <div className="flex justify-center gap-3">
+                <div className="flex flex-col items-center gap-4">
                   <Link href="/submit">
-                    <Button size="lg" className="bg-orange-500 hover:bg-orange-600 gap-2">
-                      <Rocket className="h-5 w-5" />
+                    <Button size="lg" className="bg-orange-500 hover:bg-orange-600 gap-2 px-8 py-6 text-lg">
+                      <Rocket className="h-6 w-6" />
                       Launch Now
                     </Button>
                   </Link>
+                  <p className="text-sm text-muted-foreground">
+                    Want to stay updated?{' '}
+                    <a href="#newsletter" className="text-orange-600 hover:underline">
+                      Subscribe to our newsletter
+                    </a>
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -350,7 +356,7 @@ export function StartupFeed() {
       )}
 
       {/* Newsletter CTA */}
-      <div className="bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg p-6 text-white">
+      <div id="newsletter" className="bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg p-6 text-white">
         <h3 className="font-semibold text-lg mb-2">
           Get the best of Exitasy directly in your inbox
         </h3>

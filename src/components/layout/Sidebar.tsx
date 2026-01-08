@@ -153,9 +153,18 @@ export function Sidebar() {
                       </span>
                       <span className="font-medium text-sm">{startup.name}</span>
                     </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {startup.trendScore ? Math.round(startup.trendScore) : startup.upvoteCount} pts
-                    </Badge>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="secondary" className="text-xs cursor-help">
+                            {startup.trendScore ? Math.round(startup.trendScore) : startup.upvoteCount} pts
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="max-w-[200px]">
+                          <p className="text-xs">Based on upvotes, comments, and guesses in the last 7 days</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   {/* Activity breakdown - always visible */}
                   <div className="flex items-center gap-3 mt-1 ml-7 text-[11px] text-muted-foreground">

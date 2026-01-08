@@ -84,6 +84,7 @@ function formatMRR(mrr: number): string {
 export function StartupCard({ startup, showRank = false }: StartupCardProps) {
   const [upvoted, setUpvoted] = useState(false);
   const [upvoteCount, setUpvoteCount] = useState(startup.upvoteCount || 0);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   // Convert uppercase stage from API to lowercase for STAGE_CONFIG
   const stageLower = (startup.stage?.toLowerCase() || 'making_money') as StartupStage;
@@ -93,6 +94,11 @@ export function StartupCard({ startup, showRank = false }: StartupCardProps) {
   const handleUpvote = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Trigger animation
+    setIsAnimating(true);
+    setTimeout(() => setIsAnimating(false), 300);
+
     if (upvoted) {
       setUpvoteCount((prev) => prev - 1);
     } else {
@@ -102,7 +108,10 @@ export function StartupCard({ startup, showRank = false }: StartupCardProps) {
   };
 
   return (
-    <Card className="hover:shadow-lg hover:border-orange-200 transition-all duration-200 group overflow-hidden">
+    <Card className={cn(
+      "hover:shadow-lg hover:border-orange-200 transition-all duration-200 group overflow-hidden",
+      isAnimating && "scale-[1.02] shadow-lg border-orange-300"
+    )}>
       <CardContent className="p-0">
         <div className="flex">
           {/* Product Hunt Style Upvote Button - LEFT COLUMN */}
@@ -112,16 +121,19 @@ export function StartupCard({ startup, showRank = false }: StartupCardProps) {
               'flex flex-col items-center justify-center px-4 py-6 border-r transition-all duration-200 min-w-[72px]',
               upvoted
                 ? 'bg-orange-500 text-white border-orange-500'
-                : 'bg-gray-50 hover:bg-orange-50 text-gray-600 hover:text-orange-600 border-gray-100'
+                : 'bg-gray-50 hover:bg-orange-50 text-gray-600 hover:text-orange-600 border-gray-100',
+              isAnimating && 'scale-110'
             )}
           >
             <ChevronUp className={cn(
               'h-6 w-6 transition-transform duration-200',
-              upvoted && 'animate-bounce'
+              upvoted && 'animate-bounce',
+              isAnimating && '-translate-y-1'
             )} />
             <span className={cn(
-              'text-lg font-bold mt-1',
-              upvoted ? 'text-white' : 'text-gray-900'
+              'text-lg font-bold mt-1 transition-all duration-200',
+              upvoted ? 'text-white' : 'text-gray-900',
+              isAnimating && 'scale-125'
             )}>
               {upvoteCount}
             </span>
