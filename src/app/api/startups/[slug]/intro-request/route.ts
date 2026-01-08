@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
+// Rate limit: 5 intro requests per day per user
+const INTRO_REQUEST_DAILY_LIMIT = 5;
+
 // POST /api/startups/[slug]/intro-request - Request intro to founder
 export async function POST(
   req: Request,
@@ -24,9 +27,10 @@ export async function POST(
     }
 
     // Only approved buyers or admins can request intro
+    const buyerStatus = (user as { buyerStatus?: string }).buyerStatus;
     const hasBuyerAccess =
       user.role === 'ADMIN' ||
-      (user.role === 'BUYER' && user.buyerStatus === 'APPROVED');
+      (user.role === 'BUYER' && buyerStatus === 'APPROVED');
 
     if (!hasBuyerAccess) {
       // Provide specific error messages based on status
@@ -36,13 +40,13 @@ export async function POST(
           { status: 403 }
         );
       }
-      if (user.role === 'BUYER' && user.buyerStatus === 'PENDING') {
+      if (user.role === 'BUYER' && buyerStatus === 'PENDING') {
         return NextResponse.json(
           { message: 'Your buyer application is pending approval.', code: 'BUYER_PENDING' },
           { status: 403 }
         );
       }
-      if (user.role === 'BUYER' && user.buyerStatus === 'REJECTED') {
+      if (user.role === 'BUYER' && buyerStatus === 'REJECTED') {
         return NextResponse.json(
           { message: 'Your buyer application was not approved.', code: 'BUYER_REJECTED' },
           { status: 403 }
@@ -51,6 +55,29 @@ export async function POST(
       return NextResponse.json(
         { message: 'You need to be an approved buyer to request intros.', code: 'NOT_BUYER' },
         { status: 403 }
+      );
+    }
+
+    // Rate limit check: 5 intro requests per day
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayRequestCount = await prisma.buyerAccessRequest.count({
+      where: {
+        userId: session.user.id,
+        createdAt: { gte: todayStart },
+      },
+    });
+
+    if (todayRequestCount >= INTRO_REQUEST_DAILY_LIMIT) {
+      return NextResponse.json(
+        {
+          message: `Daily intro request limit reached (${INTRO_REQUEST_DAILY_LIMIT}/day). Try again tomorrow.`,
+          code: 'RATE_LIMIT_EXCEEDED',
+          limit: INTRO_REQUEST_DAILY_LIMIT,
+          remaining: 0,
+        },
+        { status: 429 }
       );
     }
 

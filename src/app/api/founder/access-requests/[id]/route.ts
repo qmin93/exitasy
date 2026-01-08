@@ -177,30 +177,53 @@ export async function PATCH(
       },
     });
 
-    // If approved, upgrade user role/plan if needed
+    // If approved, create DealRoom and upgrade user
+    let dealRoom = null;
     if (action === 'APPROVE') {
-      // Upgrade user to buyer role with approved status
-      await prisma.user.update({
-        where: { id: request.user.id },
+      // Create DealRoom for communication
+      dealRoom = await prisma.dealRoom.create({
         data: {
-          role: 'BUYER',
-          buyerStatus: 'APPROVED',
+          startupId: request.startup.id,
+          buyerId: request.user.id,
+          founderId: session.user.id,
+          introRequestId: id,
+          status: 'OPEN',
+        },
+      });
+
+      // Log the intro accepted event (for trending score)
+      await prisma.eventLog.create({
+        data: {
+          type: 'INTRO_REQUEST_ACCEPTED',
+          startupId: request.startup.id,
+          userId: session.user.id,
+          metadata: JSON.stringify({
+            requestId: id,
+            buyerId: request.user.id,
+            dealRoomId: dealRoom.id,
+          }),
+        },
+      });
+
+      // Create notification for deal room
+      await prisma.notification.create({
+        data: {
+          userId: request.user.id,
+          type: 'BUYER_INTEREST',
+          title: 'Deal Room Opened! 🚀',
+          message: `You can now communicate with the founder of ${request.startup.name} in your private deal room.`,
+          link: `/deal/${dealRoom.id}`,
         },
       });
     } else if (action === 'REJECT') {
-      // If rejecting, set buyerStatus to REJECTED (keep role as is)
-      await prisma.user.update({
-        where: { id: request.user.id },
-        data: {
-          buyerStatus: 'REJECTED',
-        },
-      });
+      // If rejecting, just notify (buyer status unchanged)
     }
 
     return NextResponse.json({
       success: true,
       message: `Request ${action.toLowerCase()}ed successfully`,
       request: updatedRequest,
+      dealRoom: dealRoom ? { id: dealRoom.id } : null,
     });
   } catch (error) {
     console.error('Error updating access request:', error);

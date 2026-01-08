@@ -197,6 +197,7 @@ model Startup {
   follows         Follow[]
   trendScore      TrendScore?
   trendingSnapshots TrendingSnapshot[]
+  dealRooms       DealRoom[]
 }
 
 model StartupMaker {
@@ -240,6 +241,7 @@ model Upvote {
   startup   Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, startupId])
+  @@index([startupId, createdAt])
 }
 
 model Comment {
@@ -256,6 +258,8 @@ model Comment {
   startup   Startup   @relation(fields: [startupId], references: [id], onDelete: Cascade)
   parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   Comment[] @relation("CommentReplies")
+
+  @@index([startupId, createdAt])
 }
 
 model Guess {
@@ -270,6 +274,7 @@ model Guess {
   startup   Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, startupId])
+  @@index([startupId, createdAt])
 }
 
 model BuyerInterest {
@@ -315,6 +320,7 @@ model BuyerAccessRequest {
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   startup     Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  dealRoom    DealRoom?
 
   @@unique([userId, startupId])
   @@index([startupId, status])
@@ -458,4 +464,61 @@ model TrendingSnapshot {
   @@unique([startupId, window])
   @@index([window, score(sort: Desc)])
   @@index([calculatedAt])
+}
+
+// ============================================
+// Deal Room (Private Communication After Intro Accept)
+// ============================================
+
+enum DealRoomStatus {
+  OPEN      // Intro accepted, communication active
+  CLOSED    // Deal completed or cancelled
+  PAUSED    // Temporarily paused
+}
+
+model DealRoom {
+  id              String         @id @default(cuid())
+  startupId       String
+  buyerId         String         // User who requested intro
+  founderId       String         // Startup owner
+  introRequestId  String         @unique // Links to BuyerAccessRequest
+
+  status          DealRoomStatus @default(OPEN)
+
+  // Contact info shared
+  buyerEmail      String?
+  buyerPhone      String?
+  founderEmail    String?
+  founderPhone    String?
+
+  // Deal progress
+  lastActivity    DateTime       @default(now())
+  closedAt        DateTime?
+  closeReason     String?        // DEAL_DONE, NO_FIT, BUYER_WITHDREW, FOUNDER_WITHDREW
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  startup         Startup        @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  introRequest    BuyerAccessRequest @relation(fields: [introRequestId], references: [id], onDelete: Cascade)
+  messages        DealMessage[]
+
+  @@index([startupId])
+  @@index([buyerId])
+  @@index([founderId])
+  @@index([status])
+}
+
+model DealMessage {
+  id          String   @id @default(cuid())
+  dealRoomId  String
+  senderId    String   // User ID of sender
+  content     String   @db.Text
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  dealRoom    DealRoom @relation(fields: [dealRoomId], references: [id], onDelete: Cascade)
+
+  @@index([dealRoomId, createdAt])
 }

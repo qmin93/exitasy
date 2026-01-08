@@ -88,6 +88,9 @@ export async function GET(req: Request, context: RouteContext) {
   }
 }
 
+// Rate limit: 10 comments per day per user
+const COMMENT_DAILY_LIMIT = 10;
+
 // POST /api/startups/[slug]/comments - Create a comment
 export async function POST(req: Request, context: RouteContext) {
   try {
@@ -98,6 +101,29 @@ export async function POST(req: Request, context: RouteContext) {
       return NextResponse.json(
         { message: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    // Rate limit check: 10 comments per day
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayCommentCount = await prisma.comment.count({
+      where: {
+        userId: session.user.id,
+        createdAt: { gte: todayStart },
+      },
+    });
+
+    if (todayCommentCount >= COMMENT_DAILY_LIMIT) {
+      return NextResponse.json(
+        {
+          message: `Daily comment limit reached (${COMMENT_DAILY_LIMIT}/day). Try again tomorrow.`,
+          code: 'RATE_LIMIT_EXCEEDED',
+          limit: COMMENT_DAILY_LIMIT,
+          remaining: 0,
+        },
+        { status: 429 }
       );
     }
 
