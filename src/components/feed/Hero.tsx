@@ -22,7 +22,7 @@ export function Hero() {
 
   return (
     <div className="bg-gradient-to-b from-orange-50 to-white border-b">
-      <div className="container py-12 px-4">
+      <div className="container mx-auto py-12 px-4 max-w-6xl">
         <div className="text-center max-w-3xl mx-auto">
           {/* Main Headline */}
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
