@@ -16,10 +16,10 @@ export async function POST(
 
     const { slug } = await params;
     const body = await req.json();
-    const { message, budgetRange, timeline, buyerType, linkedin } = body;
+    const { companyName, message, budgetRange, timeline, buyerType, operatorPlan, linkedin } = body;
 
     // Validate required fields
-    if (!message || !budgetRange || !timeline || !buyerType) {
+    if (!companyName || !message || !budgetRange || !timeline || !buyerType) {
       return NextResponse.json(
         { message: 'Missing required fields' },
         { status: 400 }
@@ -67,10 +67,12 @@ export async function POST(
       data: {
         userId: session.user.id,
         startupId: startup.id,
+        companyName,
         message,
         budgetRange,
         timeline,
         buyerType,
+        operatorPlan: operatorPlan || null,
         linkedinUrl: linkedin || null,
         status: 'PENDING',
       },
@@ -103,13 +105,14 @@ export async function POST(
       },
     });
 
-    // Log the event
+    // Log the event (INTRO_REQUEST_CREATED for trending score)
     await prisma.eventLog.create({
       data: {
-        type: 'INTRO_REQUESTED',
+        type: 'INTRO_REQUEST_CREATED',
         startupId: startup.id,
         userId: session.user.id,
         metadata: JSON.stringify({
+          companyName,
           budgetRange,
           timeline,
           buyerType,

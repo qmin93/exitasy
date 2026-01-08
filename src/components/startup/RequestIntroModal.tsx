@@ -96,10 +96,12 @@ export function RequestIntroModal({
   });
 
   // Form state
+  const [companyName, setCompanyName] = useState('');
   const [message, setMessage] = useState('');
   const [budgetRange, setBudgetRange] = useState('');
   const [timeline, setTimeline] = useState('');
   const [buyerType, setBuyerType] = useState('');
+  const [operatorPlan, setOperatorPlan] = useState('');
   const [linkedin, setLinkedin] = useState('');
 
   // Fetch existing request status when modal opens
@@ -117,7 +119,7 @@ export function RequestIntroModal({
   }, [open, session?.user?.id, startupSlug]);
 
   const handleSubmit = async () => {
-    if (!message || !budgetRange || !timeline || !buyerType) {
+    if (!companyName || !message || !budgetRange || !timeline || !buyerType) {
       alert('Please fill in all required fields');
       return;
     }
@@ -128,10 +130,12 @@ export function RequestIntroModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          companyName,
           message,
           budgetRange,
           timeline,
           buyerType,
+          operatorPlan,
           linkedin,
         }),
       });
@@ -162,10 +166,12 @@ export function RequestIntroModal({
       // Reset form on close only if user hasn't submitted yet
       setTimeout(() => {
         setIsSubmitted(false);
+        setCompanyName('');
         setMessage('');
         setBudgetRange('');
         setTimeline('');
         setBuyerType('');
+        setOperatorPlan('');
         setLinkedin('');
       }, 300);
     }
@@ -314,20 +320,33 @@ export function RequestIntroModal({
         )}
 
         <div className="space-y-4 py-4">
-          {/* Message */}
+          {/* Company or Fund Name */}
+          <div className="space-y-2">
+            <Label htmlFor="companyName">
+              Company or fund name <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="companyName"
+              placeholder="e.g., Acme Capital, My Holding Co, or Individual Buyer"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+            />
+          </div>
+
+          {/* Why You? / Message */}
           <div className="space-y-2">
             <Label htmlFor="message">
-              Your message to the founder <span className="text-red-500">*</span>
+              Why you? <span className="text-red-500">*</span>
             </Label>
             <Textarea
               id="message"
-              placeholder="Hi! I'm interested in acquiring your product. I've been looking for a SaaS in this space because..."
+              placeholder="Tell the founder why you're the right buyer. Include your background, relevant experience, and what excites you about this product..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={4}
             />
             <p className="text-xs text-muted-foreground">
-              Be specific about your interest and background. Good messages get faster responses.
+              Be specific about your interest and experience. Good messages get faster responses.
             </p>
           </div>
 
@@ -391,6 +410,23 @@ export function RequestIntroModal({
             </Select>
           </div>
 
+          {/* Operator Plan (optional) */}
+          <div className="space-y-2">
+            <Label htmlFor="operatorPlan">
+              Operator plan (optional)
+            </Label>
+            <Textarea
+              id="operatorPlan"
+              placeholder="If you plan to operate this yourself, describe your vision: How would you grow it? What would you change? What would you keep?"
+              value={operatorPlan}
+              onChange={(e) => setOperatorPlan(e.target.value)}
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">
+              Founders love hearing concrete plans for their baby.
+            </p>
+          </div>
+
           {/* LinkedIn (optional) */}
           <div className="space-y-2">
             <Label htmlFor="linkedin">LinkedIn profile (optional but recommended)</Label>
@@ -412,7 +448,7 @@ export function RequestIntroModal({
           <p className="text-xs text-muted-foreground">Your info is shared only with this founder.</p>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !message || !budgetRange || !timeline || !buyerType}
+            disabled={isSubmitting || !companyName || !message || !budgetRange || !timeline || !buyerType}
             className="bg-green-600 hover:bg-green-700 gap-2"
           >
             {isSubmitting ? (

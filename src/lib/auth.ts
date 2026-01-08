@@ -81,11 +81,32 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.username = (user as { username?: string }).username;
+
+        // Fetch role and buyerStatus from database
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { role: true, buyerStatus: true },
+        });
+        if (dbUser) {
+          token.role = dbUser.role;
+          token.buyerStatus = dbUser.buyerStatus;
+        }
       }
 
       // Handle session update
       if (trigger === 'update' && session) {
         token.username = session.username;
+        // Refresh role and buyerStatus on update
+        if (token.id) {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true, buyerStatus: true },
+          });
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.buyerStatus = dbUser.buyerStatus;
+          }
+        }
       }
 
       return token;
@@ -94,10 +115,12 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.username = token.username as string;
+        session.user.role = token.role as 'FOUNDER' | 'BUYER' | 'ADMIN';
+        session.user.buyerStatus = token.buyerStatus as 'PENDING' | 'APPROVED' | 'REJECTED' | null;
       }
       return session;
     },
-    async signIn({ user, account, profile }) {
+    async signIn({ user, profile }) {
       // Generate username from email if not exists
       if (user && !user.name && profile?.email) {
         const username = profile.email.split('@')[0];

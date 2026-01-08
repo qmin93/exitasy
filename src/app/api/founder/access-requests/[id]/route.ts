@@ -178,11 +178,20 @@ export async function PATCH(
 
     // If approved, upgrade user role/plan if needed
     if (action === 'APPROVE') {
-      // Could upgrade user to buyer plan here if needed
+      // Upgrade user to buyer role with approved status
       await prisma.user.update({
         where: { id: request.user.id },
         data: {
-          role: 'buyer', // Mark as active buyer
+          role: 'BUYER',
+          buyerStatus: 'APPROVED',
+        },
+      });
+    } else if (action === 'REJECT') {
+      // If rejecting, set buyerStatus to REJECTED (keep role as is)
+      await prisma.user.update({
+        where: { id: request.user.id },
+        data: {
+          buyerStatus: 'REJECTED',
         },
       });
     }

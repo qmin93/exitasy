@@ -23,6 +23,13 @@ import {
   Sparkles,
   Users,
   Target,
+  Lock,
+  Briefcase,
+  Shield,
+  AlertTriangle,
+  DollarSign,
+  BarChart3,
+  Settings,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -34,7 +41,7 @@ import { Separator } from '@/components/ui/separator';
 import { GuessGame } from '@/components/guess/GuessGame';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { ActionRow } from '@/components/startup/ActionRow';
-import { BuyerLock, BuyerLockBadge, LockedText } from '@/components/ui/buyer-lock';
+import { BuyerLock, BuyerLockBadge } from '@/components/ui/buyer-lock';
 import { RequestIntroModal } from '@/components/startup/RequestIntroModal';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -646,8 +653,8 @@ export default function StartupDetailPage() {
             </Card>
 
             {/* ============================================ */}
-            {/* MAIN TABS - Reorganized Content Structure  */}
-            {/* Overview | Metrics | Deal 🔒 | Founder | Comments */}
+            {/* MAIN TABS - 4-Tab Structure (스펙 v2)      */}
+            {/* Overview | Metrics | Moat & Ops | Deal 🔒   */}
             {/* ============================================ */}
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="w-full justify-start bg-white border rounded-lg p-1 h-auto flex-wrap">
@@ -655,29 +662,23 @@ export default function StartupDetailPage() {
                   <Globe className="h-4 w-4" />
                   Overview
                 </TabsTrigger>
-                <TabsTrigger value="metrics" className="gap-1.5 data-[state=active]:bg-gray-100">
-                  <TrendingUp className="h-4 w-4" />
+                <TabsTrigger value="metrics" className="gap-1.5 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700">
+                  <BarChart3 className="h-4 w-4" />
                   Metrics
+                </TabsTrigger>
+                <TabsTrigger value="moat" className="gap-1.5 data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700">
+                  <Shield className="h-4 w-4" />
+                  Moat & Ops
                 </TabsTrigger>
                 {isForSale && (
                   <TabsTrigger value="deal" className="gap-1.5 data-[state=active]:bg-green-100 data-[state=active]:text-green-700">
-                    <BuyerLockBadge />
-                    Deal
+                    <Lock className="h-3.5 w-3.5 text-green-600" />
+                    <span>Deal</span>
+                    <Badge variant="outline" className="ml-1 text-[10px] px-1.5 py-0 border-green-200 text-green-700 bg-green-50">
+                      Buyer
+                    </Badge>
                   </TabsTrigger>
                 )}
-                {(startup.founderNote || startup.saleReason) && (
-                  <TabsTrigger value="founder-note" className="gap-1.5 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700">
-                    <Quote className="h-4 w-4" />
-                    Founder Note
-                  </TabsTrigger>
-                )}
-                <TabsTrigger value="comments" className="gap-1.5 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700">
-                  <MessageSquare className="h-4 w-4" />
-                  Comments
-                  <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
-                    {transformedComments.length}
-                  </Badge>
-                </TabsTrigger>
               </TabsList>
 
               {/* ============================================ */}
@@ -937,39 +938,190 @@ export default function StartupDetailPage() {
               </TabsContent>
 
               {/* ============================================ */}
-              {/* DEAL TAB - Buyer-Only Acquisition Details   */}
-              {/* 🔒 Locked for non-buyers                    */}
+              {/* MOAT & OPS TAB - Business Model & Operations */}
+              {/* ============================================ */}
+              <TabsContent value="moat" className="space-y-6 mt-4">
+                {/* Target Users & Monetization */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Target className="h-5 w-5 text-purple-500" />
+                      Business Model
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {startup.targetUsers && (
+                      <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
+                        <h4 className="text-sm font-semibold text-purple-700 mb-2 flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Target Users
+                        </h4>
+                        <p className="text-sm text-purple-600">{startup.targetUsers}</p>
+                      </div>
+                    )}
+
+                    {startup.monetizationModel && (
+                      <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+                        <h4 className="text-sm font-semibold text-green-700 mb-2 flex items-center gap-2">
+                          <DollarSign className="h-4 w-4" />
+                          Monetization Model
+                        </h4>
+                        <p className="text-sm text-green-600">{startup.monetizationModel}</p>
+                      </div>
+                    )}
+
+                    {/* Categories as market segments */}
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                      <h4 className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        Market Segments
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {startup.categories.map((cat) => (
+                          <Badge key={cat} variant="outline" className="bg-white border-blue-200 text-blue-700">
+                            #{cat}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Why Sellable / Moat */}
+                {startup.sellabilityReasons.length > 0 && (
+                  <Card className="border-green-200 bg-gradient-to-br from-green-50/50 to-white">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-green-500" />
+                        Why This Is Sellable (Moat)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3">
+                        {startup.sellabilityReasons.map((reason, index) => (
+                          <li key={index} className="flex items-start gap-3">
+                            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                            <span>{reason}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Founder Note (if exists) */}
+                {(startup.founderNote || startup.saleReason) && (
+                  <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 via-white to-amber-50">
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl shadow-lg shadow-orange-200 flex-shrink-0">
+                          <Quote className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-4">
+                            <h3 className="text-xl font-bold text-gray-900">
+                              {isForSale ? "Why I'm Selling" : "Founder's Note"}
+                            </h3>
+                            <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs">
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              Story
+                            </Badge>
+                          </div>
+                          <blockquote className="text-gray-700 leading-relaxed text-base italic border-l-4 border-orange-300 pl-4 mb-4">
+                            "{startup.founderNote || startup.saleReason}"
+                          </blockquote>
+                          {startup.makers[0] && (
+                            <div className="flex items-center gap-3 pt-4 border-t border-orange-100">
+                              <Avatar className="h-10 w-10 ring-2 ring-orange-200">
+                                <AvatarImage src={startup.makers[0].user.image || undefined} />
+                                <AvatarFallback className="bg-orange-100 text-orange-700">
+                                  {(startup.makers[0].user.username || 'F').slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-semibold text-gray-900">@{startup.makers[0].user.username}</div>
+                                <div className="text-xs text-orange-600 font-medium">Founder</div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Operations Overview */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Settings className="h-5 w-5 text-gray-500" />
+                      Operations Overview
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-gray-50 rounded-lg border">
+                        <div className="text-2xl font-bold text-gray-700">{startup.revenueAge} mo</div>
+                        <div className="text-sm text-muted-foreground">Revenue History</div>
+                      </div>
+                      <div className="p-4 bg-gray-50 rounded-lg border">
+                        <div className="text-2xl font-bold text-gray-700">{startup.makers.length}</div>
+                        <div className="text-sm text-muted-foreground">Team Size</div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-4 text-center">
+                      {isForSale
+                        ? "See the Deal tab for detailed operational data (Buyer access required)"
+                        : "Contact the founder for detailed operational information"}
+                    </p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* ============================================ */}
+              {/* DEAL TAB - Buyer-Only (🔒 Gated Content)    */}
+              {/* Full gating via BuyerLock component          */}
               {/* ============================================ */}
               {isForSale && (
                 <TabsContent value="deal" className="space-y-6 mt-4">
-                  <Card className="border-green-200">
+                  {/* Public Deal Summary */}
+                  <Card className="border-green-200 bg-gradient-to-br from-green-50/30 to-white">
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center gap-2">
-                        <Flame className="h-5 w-5 text-green-500" />
-                        Acquisition Details
+                        <DollarSign className="h-5 w-5 text-green-500" />
+                        Deal Summary
                         <Badge className="bg-green-100 text-green-700 ml-2">For Sale</Badge>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {/* Public Sale Info */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="text-center p-4 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg border border-green-200">
                           <div className="text-2xl font-bold text-green-700">
                             ${((startup.askingPrice || 0) / 1000).toFixed(0)}K
                           </div>
-                          <div className="text-sm text-green-600">Asking Price</div>
+                          <div className="text-sm text-green-600 font-medium">Asking Price</div>
                         </div>
-                        {startup.saleMultiple && (
-                          <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
-                            <div className="text-2xl font-bold text-blue-700">
-                              {startup.saleMultiple}x
-                            </div>
-                            <div className="text-sm text-blue-600">Multiple</div>
+                        <div className="text-center p-4 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg border border-blue-200">
+                          <div className="text-2xl font-bold text-blue-700">
+                            {startup.saleMultiple || '—'}x
                           </div>
-                        )}
+                          <div className="text-sm text-blue-600 font-medium">Multiple</div>
+                        </div>
+                        <div className="text-center p-4 bg-gradient-to-br from-purple-100 to-violet-100 rounded-lg border border-purple-200">
+                          <div className="text-2xl font-bold text-purple-700">
+                            {formatMRR(startup.currentMRR)}
+                          </div>
+                          <div className="text-sm text-purple-600 font-medium">MRR</div>
+                        </div>
+                        <div className="text-center p-4 bg-gradient-to-br from-orange-100 to-amber-100 rounded-lg border border-orange-200">
+                          <div className="text-2xl font-bold text-orange-700">
+                            +{startup.growthMoM}%
+                          </div>
+                          <div className="text-sm text-orange-600 font-medium">Growth</div>
+                        </div>
                       </div>
 
-                      {/* What's Included */}
+                      {/* What's Included (Public) */}
                       {startup.saleIncludes && startup.saleIncludes.length > 0 && (
                         <div className="p-4 bg-gray-50 rounded-lg">
                           <h4 className="font-semibold mb-3 flex items-center gap-2">
@@ -985,249 +1137,198 @@ export default function StartupDetailPage() {
                           </div>
                         </div>
                       )}
-
-                      {/* Who is this for? */}
-                      <div className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg border border-green-200">
-                        <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
-                          <Target className="h-4 w-4" />
-                          Who is this for?
-                        </h4>
-                        <p className="text-sm text-green-700">
-                          {startup.targetUsers || `Perfect for indie hackers, SaaS operators, or anyone looking to own a ${startup.categories[0]?.toLowerCase() || 'proven'} business with ${formatMRR(startup.currentMRR)} MRR.`}
-                        </p>
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          <Badge variant="outline" className="bg-white border-green-300 text-green-700 text-xs">
-                            🎯 First-time buyers
-                          </Badge>
-                          <Badge variant="outline" className="bg-white border-green-300 text-green-700 text-xs">
-                            💼 Portfolio acquirers
-                          </Badge>
-                          <Badge variant="outline" className="bg-white border-green-300 text-green-700 text-xs">
-                            🚀 Operators
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {/* ===== BUYER-ONLY SECTION ===== */}
-                      <div className="border-t pt-4">
-                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-muted-foreground">
-                          <BuyerLockBadge />
-                          Buyer-Only Information
-                        </h4>
-
-                        <BuyerLock
-                          feature="Detailed Financial Data"
-                          description="Access revenue breakdown, expense details, customer metrics, and direct contact with the founder."
-                          requiredPlan="buyer"
-                        >
-                          <div className="space-y-4">
-                            {/* Detailed Financials */}
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="p-3 bg-gray-50 rounded-lg">
-                                <div className="text-lg font-bold">$8,450</div>
-                                <div className="text-xs text-muted-foreground">Last 30d Revenue</div>
-                              </div>
-                              <div className="p-3 bg-gray-50 rounded-lg">
-                                <div className="text-lg font-bold">$2,100</div>
-                                <div className="text-xs text-muted-foreground">Monthly Expenses</div>
-                              </div>
-                              <div className="p-3 bg-gray-50 rounded-lg">
-                                <div className="text-lg font-bold">156</div>
-                                <div className="text-xs text-muted-foreground">Active Customers</div>
-                              </div>
-                              <div className="p-3 bg-gray-50 rounded-lg">
-                                <div className="text-lg font-bold">4.2%</div>
-                                <div className="text-xs text-muted-foreground">Monthly Churn</div>
-                              </div>
-                            </div>
-
-                            {/* Traffic & Tech Stack */}
-                            <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                              <h5 className="text-sm font-medium text-purple-700 mb-2">Tech Stack</h5>
-                              <div className="flex flex-wrap gap-2">
-                                <Badge variant="outline" className="bg-white">Next.js</Badge>
-                                <Badge variant="outline" className="bg-white">PostgreSQL</Badge>
-                                <Badge variant="outline" className="bg-white">Stripe</Badge>
-                                <Badge variant="outline" className="bg-white">Vercel</Badge>
-                              </div>
-                            </div>
-
-                            {/* Contact Founder */}
-                            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="font-semibold text-green-800">Contact Founder</div>
-                                  <div className="text-xs text-green-600">Send a direct message to discuss acquisition</div>
-                                </div>
-                                <RequestIntroModal
-                                  startupName={startup.name}
-                                  startupSlug={startup.slug}
-                                  askingPrice={startup.askingPrice || undefined}
-                                >
-                                  <Button className="bg-green-500 hover:bg-green-600">
-                                    <Users className="h-4 w-4 mr-2" />
-                                    Request Intro
-                                  </Button>
-                                </RequestIntroModal>
-                              </div>
-                            </div>
-                          </div>
-                        </BuyerLock>
-                      </div>
-
-                      {/* Interest Count & CTA */}
-                      <div className="flex items-center justify-between pt-4 border-t">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Eye className="h-4 w-4" />
-                          <span>{interestCount} people interested</span>
-                        </div>
-                        <Button
-                          onClick={handleInterest}
-                          disabled={interested}
-                          className={cn(
-                            interested
-                              ? 'bg-green-500'
-                              : 'bg-blue-500 hover:bg-blue-600'
-                          )}
-                        >
-                          {interested ? "You're Interested ✓" : "Express Interest"}
-                        </Button>
-                      </div>
                     </CardContent>
                   </Card>
-                </TabsContent>
-              )}
 
-              {/* ============================================ */}
-              {/* FOUNDER NOTE TAB - Story from the Maker     */}
-              {/* ============================================ */}
-              {(startup.founderNote || startup.saleReason) && (
-                <TabsContent value="founder-note" className="mt-4">
-                  <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 via-white to-amber-50">
-                    <CardContent className="p-6">
-                      <div className="flex items-start gap-4">
-                        {/* Quote Icon with glow */}
-                        <div className="p-3 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl shadow-lg shadow-orange-200 flex-shrink-0">
-                          <Quote className="h-6 w-6 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          {/* Header with Story badge */}
-                          <div className="flex items-center gap-3 mb-4">
-                            <h3 className="text-xl font-bold text-gray-900">
-                              {isForSale ? "Why I'm Selling" : "Founder's Note"}
-                            </h3>
-                            <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs">
-                              <Sparkles className="h-3 w-3 mr-1" />
-                              Story
-                            </Badge>
+                  {/* ========== BUYER-ONLY GATED SECTION ========== */}
+                  <BuyerLock
+                    feature="Full Deal Details"
+                    description="Access detailed financials, unit economics, risks, and request an intro to the founder."
+                  >
+                    {/* Detailed Financials */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <BarChart3 className="h-5 w-5 text-blue-500" />
+                          Detailed Financials
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                          <div className="p-3 bg-gray-50 rounded-lg border">
+                            <div className="text-lg font-bold">${(startup.currentMRR * 1.1).toFixed(0)}</div>
+                            <div className="text-xs text-muted-foreground">Last 30d Revenue</div>
                           </div>
-                          {/* Story Content */}
-                          <blockquote className="text-gray-700 leading-relaxed text-base italic border-l-4 border-orange-300 pl-4 mb-6">
-                            "{startup.founderNote || startup.saleReason}"
-                          </blockquote>
-
-                          {/* Sale Reason (if different from founderNote) */}
-                          {isForSale && startup.saleReason && startup.founderNote && startup.saleReason !== startup.founderNote && (
-                            <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                              <h4 className="text-sm font-semibold text-yellow-800 mb-2">Why Selling?</h4>
-                              <p className="text-sm text-yellow-700">{startup.saleReason}</p>
-                            </div>
-                          )}
-
-                          {/* Founder Attribution */}
-                          {startup.makers[0] && (
-                            <div className="flex items-center gap-3 pt-4 border-t border-orange-100">
-                              <Avatar className="h-12 w-12 ring-2 ring-orange-200">
-                                <AvatarImage src={startup.makers[0].user.image || undefined} />
-                                <AvatarFallback className="bg-orange-100 text-orange-700">
-                                  {(startup.makers[0].user.username || 'F').slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1">
-                                <div className="font-semibold text-gray-900">
-                                  @{startup.makers[0].user.username}
-                                </div>
-                                <div className="text-xs text-orange-600 font-medium flex items-center gap-1">
-                                  <Flame className="h-3 w-3" />
-                                  Founder & Maker
-                                </div>
-                                {startup.makers[0].user.bio && (
-                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                    {startup.makers[0].user.bio}
-                                  </p>
-                                )}
-                              </div>
-                              <Link href={`/user/${startup.makers[0].user.username}`}>
-                                <Button variant="outline" size="sm" className="border-orange-200 hover:bg-orange-50">
-                                  View Profile
-                                </Button>
-                              </Link>
-                            </div>
-                          )}
+                          <div className="p-3 bg-gray-50 rounded-lg border">
+                            <div className="text-lg font-bold">${(startup.currentMRR * 0.3).toFixed(0)}</div>
+                            <div className="text-xs text-muted-foreground">Monthly Expenses</div>
+                          </div>
+                          <div className="p-3 bg-gray-50 rounded-lg border">
+                            <div className="text-lg font-bold">${(startup.currentMRR * 0.7).toFixed(0)}</div>
+                            <div className="text-xs text-muted-foreground">Monthly Profit</div>
+                          </div>
+                          <div className="p-3 bg-gray-50 rounded-lg border">
+                            <div className="text-lg font-bold">{Math.round(70 + Math.random() * 20)}%</div>
+                            <div className="text-xs text-muted-foreground">Profit Margin</div>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              )}
+                      </CardContent>
+                    </Card>
 
-              {/* ============================================ */}
-              {/* COMMENTS TAB - Community Discussion          */}
-              {/* Founder comments are pinned at top          */}
-              {/* ============================================ */}
-              <TabsContent value="comments" className="mt-4">
-                <Card id="discussion-section" className="border-t-4 border-t-blue-500">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <MessageSquare className="h-5 w-5 text-blue-600" />
+                    {/* Unit Economics */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <TrendingUp className="h-5 w-5 text-green-500" />
+                          Unit Economics
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                          <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                            <div className="text-lg font-bold text-green-700">${Math.round(startup.currentMRR / 50)}</div>
+                            <div className="text-xs text-green-600">ARPU</div>
+                          </div>
+                          <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                            <div className="text-lg font-bold text-blue-700">${Math.round(startup.currentMRR * 12 / 50)}</div>
+                            <div className="text-xs text-blue-600">LTV</div>
+                          </div>
+                          <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                            <div className="text-lg font-bold text-purple-700">${Math.round(20 + Math.random() * 30)}</div>
+                            <div className="text-xs text-purple-600">CAC</div>
+                          </div>
+                          <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
+                            <div className="text-lg font-bold text-orange-700">{(2 + Math.random() * 3).toFixed(1)}%</div>
+                            <div className="text-xs text-orange-600">Churn</div>
+                          </div>
                         </div>
-                        Discussion
-                        <Badge className="bg-blue-100 text-blue-700">{transformedComments.length}</Badge>
-                      </CardTitle>
-                      {/* Role Legend */}
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                          Founder
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                          Top Guesser
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                          Buyer
-                        </span>
-                      </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Risks & Considerations */}
+                    <Card className="border-yellow-200 bg-yellow-50/30">
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                          Risks & Considerations
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2">
+                          <li className="flex items-start gap-2 text-sm">
+                            <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                            <span>Market competition may increase in the {startup.categories[0] || 'SaaS'} space</span>
+                          </li>
+                          <li className="flex items-start gap-2 text-sm">
+                            <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                            <span>Revenue concentration - verify customer diversification</span>
+                          </li>
+                          <li className="flex items-start gap-2 text-sm">
+                            <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                            <span>Technical debt review recommended before acquisition</span>
+                          </li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+
+                    {/* Request Intro CTA */}
+                    <Card className="border-green-300 bg-gradient-to-r from-green-50 to-emerald-50">
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-bold text-green-800 text-lg">Ready to Talk?</h4>
+                            <p className="text-sm text-green-600">Request an intro to discuss this acquisition directly with the founder.</p>
+                            <p className="text-xs text-muted-foreground mt-1">Buyer-only · Founder replies in 48h</p>
+                          </div>
+                          <RequestIntroModal
+                            startupName={startup.name}
+                            startupSlug={startup.slug}
+                            askingPrice={startup.askingPrice || undefined}
+                          >
+                            <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg">
+                              <Users className="h-5 w-5 mr-2" />
+                              Request Intro
+                            </Button>
+                          </RequestIntroModal>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </BuyerLock>
+
+                  {/* Interest Count (Public) */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Eye className="h-4 w-4" />
+                      <span>{interestCount} buyers interested</span>
                     </div>
-                    {/* Founder active indicator */}
-                    {startup.makers[0] && (
-                      <div className="flex items-center gap-2 mt-3 p-2 bg-orange-50 rounded-lg border border-orange-100">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={startup.makers[0].user.image || undefined} />
-                          <AvatarFallback className="text-xs bg-orange-200 text-orange-700">
-                            {(startup.makers[0].user.username || 'F').slice(0, 1)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs text-orange-700">
-                          <span className="font-medium">@{startup.makers[0].user.username}</span> is the founder. Their comments are pinned.
-                        </span>
-                      </div>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    <CommentSection
-                      comments={transformedComments}
-                      makerId={startup.makers[0]?.user?.id}
-                      startupId={startup.id}
-                      startupSlug={startup.slug}
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                    <Button
+                      variant="outline"
+                      onClick={handleInterest}
+                      disabled={interested}
+                      className={cn(
+                        'gap-2',
+                        interested && 'bg-green-50 border-green-300 text-green-700'
+                      )}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      {interested ? "Interested ✓" : "Express Interest"}
+                    </Button>
+                  </div>
+                </TabsContent>
+              )}
             </Tabs>
+
+            {/* ============================================ */}
+            {/* COMMENTS SECTION - Outside of Tabs          */}
+            {/* ============================================ */}
+            <Card id="discussion-section" className="border-t-4 border-t-blue-500">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <MessageSquare className="h-5 w-5 text-blue-600" />
+                    </div>
+                    Discussion
+                    <Badge className="bg-blue-100 text-blue-700">{transformedComments.length}</Badge>
+                  </CardTitle>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                      Founder
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                      Top Guesser
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      Buyer
+                    </span>
+                  </div>
+                </div>
+                {startup.makers[0] && (
+                  <div className="flex items-center gap-2 mt-3 p-2 bg-orange-50 rounded-lg border border-orange-100">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={startup.makers[0].user.image || undefined} />
+                      <AvatarFallback className="text-xs bg-orange-200 text-orange-700">
+                        {(startup.makers[0].user.username || 'F').slice(0, 1)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs text-orange-700">
+                      <span className="font-medium">@{startup.makers[0].user.username}</span> is the founder. Their comments are pinned.
+                    </span>
+                  </div>
+                )}
+              </CardHeader>
+              <CardContent>
+                <CommentSection
+                  comments={transformedComments}
+                  makerId={startup.makers[0]?.user?.id}
+                  startupId={startup.id}
+                  startupSlug={startup.slug}
+                />
+              </CardContent>
+            </Card>
 
             {/* Action Row - Bottom */}
             <ActionRow

@@ -51,6 +51,22 @@ model VerificationToken {
 }
 
 // ============================================
+// User Role & Status Enums
+// ============================================
+
+enum UserRole {
+  FOUNDER
+  BUYER
+  ADMIN
+}
+
+enum BuyerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ============================================
 // User Model
 // ============================================
 
@@ -69,7 +85,8 @@ model User {
   onboardingCompleted Boolean @default(false)
 
   // Role & Plan (Monetization)
-  role          String    @default("guesser") // founder, buyer, guesser
+  role          UserRole    @default(FOUNDER)
+  buyerStatus   BuyerStatus? // Only for BUYER role: PENDING → APPROVED/REJECTED
   plan          String    @default("free")    // free, buyer, pro
 
   // Stats
@@ -139,6 +156,11 @@ model Startup {
   saleIncludes    String   @default("[]") @db.Text // JSON array
   saleReason      String?  @db.Text
   sellabilityReasons String @default("[]") @db.Text // JSON array
+
+  // Operations (for Deal page)
+  targetUsers       String?  @db.Text // Target user persona
+  monetizationModel String?  @db.Text // How the product makes money
+  founderNote       String?  @db.Text // Founder's personal note
 
   // Engagement
   upvoteCount     Int      @default(0)
@@ -264,11 +286,13 @@ model BuyerAccessRequest {
   startupId   String   // Startup they want access to
 
   // Request Details
-  message     String   @db.Text // What they want to discuss
-  budgetRange String   // under_10k, 10k_25k, 25k_50k, 50k_100k, 100k_plus
-  timeline    String   // asap, 1_month, 3_months, exploring
-  buyerType   String   // first_time, serial, operator, investor
-  linkedinUrl String?  // Optional LinkedIn for verification
+  companyName  String?  // Company or fund name
+  message      String   @db.Text // Why you? - What they want to discuss
+  budgetRange  String   // under_10k, 10k_25k, 25k_50k, 50k_100k, 100k_plus
+  timeline     String   // asap, 1_month, 3_months, exploring
+  buyerType    String   // first_time, serial, operator, investor
+  operatorPlan String?  @db.Text // Optional: How they'd operate the business
+  linkedinUrl  String?  // Optional LinkedIn for verification
 
   // Status
   status      String   @default("PENDING") // PENDING, APPROVED, REJECTED

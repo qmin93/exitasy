@@ -72,6 +72,16 @@ interface FormData {
   askingPrice: string;
   includes: string[];
   sellReason: string;
+  targetUsers: string;
+  monetizationModel: string;
+  founderNote: {
+    originStory: string;
+    currentOperations: string;
+    growthLevers: string;
+    whySelling: string;
+    idealBuyer: string;
+    transitionPlan: string;
+  };
 
   // Step 4
   screenshots: string[];
@@ -79,6 +89,52 @@ interface FormData {
   sellabilityReasons: string[];
   launchDate: 'now' | 'scheduled';
 }
+
+// Founder Note section templates
+const FOUNDER_NOTE_SECTIONS = [
+  {
+    key: 'originStory' as const,
+    title: 'Origin Story',
+    emoji: '🌱',
+    placeholder: 'How did this idea come to life? What problem did you see?',
+    hint: 'E.g., "I was frustrated with existing form builders that were either too complex or too limited..."',
+  },
+  {
+    key: 'currentOperations' as const,
+    title: 'Current Operations',
+    emoji: '⚙️',
+    placeholder: 'How do you run this day-to-day? What tools do you use?',
+    hint: 'E.g., "I spend ~5hrs/week on customer support and ~3hrs on maintenance..."',
+  },
+  {
+    key: 'growthLevers' as const,
+    title: 'Growth Levers',
+    emoji: '📈',
+    placeholder: 'What growth opportunities have you identified but not pursued?',
+    hint: 'E.g., "SEO is untapped - currently 0 content marketing. Enterprise tier could 2x ARPU..."',
+  },
+  {
+    key: 'whySelling' as const,
+    title: 'Why Selling',
+    emoji: '🤔',
+    placeholder: 'Why are you considering selling this business?',
+    hint: 'E.g., "I want to focus on my new SaaS project and can\'t give this the attention it deserves..."',
+  },
+  {
+    key: 'idealBuyer' as const,
+    title: 'Ideal Buyer',
+    emoji: '🎯',
+    placeholder: 'What kind of person or team would be perfect for this product?',
+    hint: 'E.g., "Someone who loves building for developers, has experience with B2B SaaS..."',
+  },
+  {
+    key: 'transitionPlan' as const,
+    title: 'Transition Plan',
+    emoji: '🤝',
+    placeholder: 'How would you help the new owner get up to speed?',
+    hint: 'E.g., "30-day email support, video walkthrough of codebase, intro to key customers..."',
+  },
+];
 
 export default function SubmitStartupPage() {
   const router = useRouter();
@@ -99,6 +155,16 @@ export default function SubmitStartupPage() {
     askingPrice: '',
     includes: [],
     sellReason: '',
+    targetUsers: '',
+    monetizationModel: '',
+    founderNote: {
+      originStory: '',
+      currentOperations: '',
+      growthLevers: '',
+      whySelling: '',
+      idealBuyer: '',
+      transitionPlan: '',
+    },
     screenshots: [],
     videoUrl: '',
     sellabilityReasons: ['', '', ''],
@@ -199,6 +265,16 @@ export default function SubmitStartupPage() {
         sold: 'SOLD',
       };
 
+      // Combine founder note sections into a single formatted string
+      const founderNoteText = FOUNDER_NOTE_SECTIONS
+        .map((section) => {
+          const content = formData.founderNote[section.key];
+          if (!content?.trim()) return null;
+          return `${section.emoji} ${section.title}\n${content}`;
+        })
+        .filter(Boolean)
+        .join('\n\n');
+
       const payload = {
         name: formData.name,
         tagline: formData.tagline,
@@ -213,6 +289,9 @@ export default function SubmitStartupPage() {
         saleIncludes: formData.includes,
         saleReason: formData.sellReason || null,
         sellabilityReasons: formData.sellabilityReasons.filter((r) => r.trim() !== ''),
+        targetUsers: formData.targetUsers || null,
+        monetizationModel: formData.monetizationModel || null,
+        founderNote: founderNoteText || null,
       };
 
       const res = await fetch('/api/startups', {
@@ -636,6 +715,68 @@ export default function SubmitStartupPage() {
                           </Badge>
                         ))}
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Target Users</label>
+                      <Input
+                        placeholder="e.g., Indie hackers, Small SaaS teams, Developers"
+                        value={formData.targetUsers}
+                        onChange={(e) =>
+                          updateFormData({ targetUsers: e.target.value })
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Monetization Model</label>
+                      <Input
+                        placeholder="e.g., Monthly SaaS subscription, One-time license"
+                        value={formData.monetizationModel}
+                        onChange={(e) =>
+                          updateFormData({ monetizationModel: e.target.value })
+                        }
+                      />
+                    </div>
+
+                    {/* Founder Note Template */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-purple-500" />
+                        <label className="text-sm font-medium">Founder Note</label>
+                        <Badge variant="secondary" className="text-xs">
+                          Buyers love this
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Share your story with potential buyers. This helps them understand the business better.
+                      </p>
+
+                      {FOUNDER_NOTE_SECTIONS.map((section) => (
+                        <div key={section.key} className="space-y-2">
+                          <label className="text-sm font-medium flex items-center gap-2">
+                            <span>{section.emoji}</span>
+                            {section.title}
+                          </label>
+                          <Textarea
+                            placeholder={section.placeholder}
+                            value={formData.founderNote[section.key]}
+                            onChange={(e) =>
+                              updateFormData({
+                                founderNote: {
+                                  ...formData.founderNote,
+                                  [section.key]: e.target.value,
+                                },
+                              })
+                            }
+                            rows={2}
+                            className="resize-none"
+                          />
+                          <p className="text-xs text-muted-foreground italic">
+                            {section.hint}
+                          </p>
+                        </div>
+                      ))}
                     </div>
 
                     <div className="space-y-2">

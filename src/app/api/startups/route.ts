@@ -234,6 +234,9 @@ export async function POST(req: Request) {
       saleIncludes,
       saleReason,
       sellabilityReasons,
+      targetUsers,
+      monetizationModel,
+      founderNote,
     } = body;
 
     // Validate required fields
@@ -276,6 +279,9 @@ export async function POST(req: Request) {
         saleIncludes: JSON.stringify(saleIncludes || []),
         saleReason,
         sellabilityReasons: JSON.stringify(sellabilityReasons || []),
+        targetUsers,
+        monetizationModel,
+        founderNote,
         makers: {
           create: {
             userId: session.user.id,

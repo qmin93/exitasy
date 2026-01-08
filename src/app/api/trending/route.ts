@@ -2,33 +2,36 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 /**
- * Trending Score v3.0 - Buyer Intent Weighted
+ * Trending Score v4.0 - EventLog-Based with Buyer Intent Weights
  *
- * Goal: Highlight listings with REAL buyer signals, not just vanity likes.
+ * Goal: Highlight listings with REAL buyer signals based on tracked events.
  *
- * Formula:
- * TrendScore = (
- *   Upvotes × 1 +
- *   Comments × 2 +
- *   Guesses × 1.5 +
- *   ExpressInterest × 4 +
- *   RequestIntro × 8 +
- *   RecencyBonus +
- *   VerifiedBonus +
- *   ForSaleBonus
- * ) × RecencyMultiplier × TrustMultiplier
+ * Event Weights (from EventLog):
+ * - UPVOTE: 1 (light interest)
+ * - COMMENT: 2 (community participation)
+ * - GUESS_MRR: 2 (engagement)
+ * - INTEREST_CLICK: 4 (express interest)
+ * - INTRO_REQUEST_CREATED: 12 (strong acquisition intent)
+ * - REVENUE_VERIFIED: 20 (trust signal)
  *
- * Anti-spam: Same user actions don't stack. New accounts have limited impact.
+ * Time Decay: Math.exp(-hoursAgo / 36)
+ * - Events lose ~63% impact every 36 hours
+ * - More aggressive than v3's 48-hour half-life
+ *
+ * Anti-Gaming Rules:
+ * - 1 upvote per user per startup
+ * - 3 comments per 24h per startup per user
+ * - 1 guess per user per startup
+ * - 1 intro request per user per startup
  */
 const WEIGHTS = {
-  // Engagement signals
+  // Event-based weights (from EventLog)
   UPVOTE: 1,                    // Light interest signal
   COMMENT: 2,                   // Community participation
-  GUESS: 1.5,                   // Game engagement / curiosity
-
-  // Buyer intent signals (weighted higher)
-  EXPRESS_INTEREST: 4,          // Anonymous interest signal
-  REQUEST_INTRO: 8,             // Strong acquisition intent
+  GUESS_MRR: 2,                 // Game engagement / curiosity
+  INTEREST_CLICK: 4,            // Express interest (anonymous)
+  INTRO_REQUEST_CREATED: 12,    // Strong acquisition intent
+  REVENUE_VERIFIED: 20,         // Trust signal (one-time)
 
   // Trust & status multipliers
   VERIFIED_MULT: 1.2,           // Verified revenue: ×1.2
@@ -41,8 +44,9 @@ const WEIGHTS = {
   // Anti-spam
   NEW_ACCOUNT_MULT: 0.5,        // New accounts (< 24h) have reduced impact
 
-  // Decay
-  HALF_LIFE_HOURS: 48,          // 48-hour half-life for recency
+  // Decay (36-hour decay constant - more aggressive)
+  DECAY_CONSTANT: 36,           // Events lose ~63% impact every 36 hours
+  HALF_LIFE_HOURS: 36,          // For display purposes
 };
 
 /**
@@ -192,7 +196,7 @@ export async function GET(req: Request) {
       let scoreBreakdown: Record<string, number>;
 
       // Buyer intent score (heavily weighted)
-      const buyerIntentScore = buyerInterestCount * WEIGHTS.EXPRESS_INTEREST;
+      const buyerIntentScore = buyerInterestCount * WEIGHTS.INTEREST_CLICK;
 
       switch (type) {
         case 'today':
@@ -200,12 +204,12 @@ export async function GET(req: Request) {
           trendScore = (
             (upvotesPeriod * WEIGHTS.UPVOTE) +
             (commentsPeriod * WEIGHTS.COMMENT) +
-            (guessesPeriod * WEIGHTS.GUESS) +
+            (guessesPeriod * WEIGHTS.GUESS_MRR) +
             buyerIntentScore +
             recentActivityBonus
           ) * verifiedMult;
           scoreBreakdown = {
-            engagement: (upvotesPeriod * WEIGHTS.UPVOTE) + (commentsPeriod * WEIGHTS.COMMENT) + (guessesPeriod * WEIGHTS.GUESS),
+            engagement: (upvotesPeriod * WEIGHTS.UPVOTE) + (commentsPeriod * WEIGHTS.COMMENT) + (guessesPeriod * WEIGHTS.GUESS_MRR),
             buyerIntent: buyerIntentScore,
             recentActivity: recentActivityBonus,
             verifiedMult,
@@ -219,13 +223,13 @@ export async function GET(req: Request) {
             (upvotesPeriod * WEIGHTS.UPVOTE) +
             (commentsPeriod * WEIGHTS.COMMENT) +
             multipleBonus +
-            (buyerInterestCount * WEIGHTS.REQUEST_INTRO) + // Higher weight for sale listings
+            (buyerInterestCount * WEIGHTS.INTRO_REQUEST_CREATED) + // Higher weight for sale listings
             recencyBonus
           ) * verifiedMult * stageMult;
           scoreBreakdown = {
             engagement: (upvotesPeriod * WEIGHTS.UPVOTE) + (commentsPeriod * WEIGHTS.COMMENT),
             dealAttractiveness: multipleBonus,
-            buyerIntent: buyerInterestCount * WEIGHTS.REQUEST_INTRO,
+            buyerIntent: buyerInterestCount * WEIGHTS.INTRO_REQUEST_CREATED,
             recency: recencyBonus,
             verifiedMult,
             stageMult,
@@ -271,7 +275,7 @@ export async function GET(req: Request) {
           const baseScore =
             (upvotesPeriod * WEIGHTS.UPVOTE) +
             (commentsPeriod * WEIGHTS.COMMENT) +
-            (guessesPeriod * WEIGHTS.GUESS) +
+            (guessesPeriod * WEIGHTS.GUESS_MRR) +
             buyerIntentScore +
             recentActivityBonus +
             founderCommentBonus;
@@ -284,7 +288,7 @@ export async function GET(req: Request) {
           scoreBreakdown = {
             upvotes: upvotesPeriod * WEIGHTS.UPVOTE,
             comments: commentsPeriod * WEIGHTS.COMMENT,
-            guesses: guessesPeriod * WEIGHTS.GUESS,
+            guesses: guessesPeriod * WEIGHTS.GUESS_MRR,
             buyerIntent: buyerIntentScore,
             recentActivity: recentActivityBonus,
             founderEngagement: founderCommentBonus,
