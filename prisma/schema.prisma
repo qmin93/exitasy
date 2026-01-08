@@ -1,0 +1,293 @@
+// Exitasy Database Schema
+// SQLite for local development
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// NextAuth.js Models
+// ============================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// User Model
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  username      String?   @unique
+  email         String?   @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  bio           String?
+  website       String?
+  twitter       String?
+  location      String?
+  onboardingCompleted Boolean @default(false)
+
+  // Stats
+  guessAccuracy Float     @default(0)
+  guessRank     Int       @default(0)
+  totalMRR      Int       @default(0)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  badges        Badge[]
+  startups      StartupMaker[]
+  upvotes       Upvote[]
+  comments      Comment[]
+  guesses       Guess[]
+  buyerInterests BuyerInterest[]
+  forumThreads  ForumThread[]
+  forumReplies  ForumReply[]
+  notifications Notification[]
+}
+
+model Badge {
+  id        String    @id @default(cuid())
+  type      String    // MAKER, VERIFIED_SELLER, TOP_GUESSER, REVENUE_100K, SOLD_STARTUP, EARLY_ADOPTER
+  userId    String
+  earnedAt  DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// Startup Model
+// ============================================
+
+model Startup {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  tagline         String
+  description     String
+  logo            String?
+  website         String
+  screenshots     String   @default("[]") // JSON array
+  videoUrl        String?
+
+  // Revenue
+  verificationStatus String @default("PENDING") // PENDING, VERIFIED, REJECTED
+  verificationProvider String? // STRIPE, PADDLE, LEMON_SQUEEZY, MANUAL
+  verificationProofUrl String?
+  lastVerifiedAt  DateTime?
+  currentMRR      Int      @default(0)
+  growthMoM       Float    @default(0)
+  revenueAge      Int      @default(0)
+
+  // Stage
+  stage           String   @default("MAKING_MONEY") // MAKING_MONEY, EXIT_READY, ACQUISITION_INTEREST, FOR_SALE, SOLD
+  askingPrice     Int?
+  saleMultiple    Float?
+  saleIncludes    String   @default("[]") // JSON array
+  saleReason      String?
+  sellabilityReasons String @default("[]") // JSON array
+
+  // Engagement
+  upvoteCount     Int      @default(0)
+  commentCount    Int      @default(0)
+  guessCount      Int      @default(0)
+  buyerInterestCount Int   @default(0)
+
+  // Meta
+  categories      String   @default("[]") // JSON array
+  launchDate      DateTime?
+  todayRank       Int?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  makers          StartupMaker[]
+  upvotes         Upvote[]
+  comments        Comment[]
+  guesses         Guess[]
+  buyerInterests  BuyerInterest[]
+  revenueSnapshots RevenueSnapshot[]
+}
+
+model StartupMaker {
+  id        String   @id @default(cuid())
+  startupId String
+  userId    String
+  role      String   @default("maker")
+
+  startup   Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([startupId, userId])
+}
+
+// ============================================
+// Revenue Snapshot
+// ============================================
+
+model RevenueSnapshot {
+  id          String   @id @default(cuid())
+  startupId   String
+  mrr         Int
+  revenue30d  Int
+  growthMoM   Float
+  recordedAt  DateTime @default(now())
+
+  startup     Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// Engagement Models
+// ============================================
+
+model Upvote {
+  id        String   @id @default(cuid())
+  userId    String
+  startupId String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startup   Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, startupId])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  content   String
+  userId    String
+  startupId String
+  parentId  String?
+  upvotes   Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startup   Startup   @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+}
+
+model Guess {
+  id        String   @id @default(cuid())
+  userId    String
+  startupId String
+  range     String   // RANGE_0_1K, RANGE_1K_5K, RANGE_5K_10K, RANGE_10K_20K, RANGE_20K_50K, RANGE_50K_PLUS
+  isCorrect Boolean?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startup   Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, startupId])
+}
+
+model BuyerInterest {
+  id          String   @id @default(cuid())
+  userId      String
+  startupId   String
+  isAnonymous Boolean  @default(true)
+  message     String?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startup     Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, startupId])
+}
+
+// ============================================
+// Forum Models
+// ============================================
+
+model ForumThread {
+  id         String   @id @default(cuid())
+  title      String
+  content    String
+  category   String   // REVENUE_GROWTH, EXIT_STRATEGY, ACQUISITION, SHOW_TELL, AMA
+  userId     String
+  upvotes    Int      @default(0)
+  replyCount Int      @default(0)
+  isPinned   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies    ForumReply[]
+}
+
+model ForumReply {
+  id        String      @id @default(cuid())
+  content   String
+  userId    String
+  threadId  String
+  parentId  String?
+  upvotes   Int         @default(0)
+  createdAt DateTime    @default(now())
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread    ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  parent    ForumReply? @relation("ReplyReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ForumReply[] @relation("ReplyReplies")
+}
+
+// ============================================
+// Notification Model
+// ============================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // UPVOTE, COMMENT, REPLY, GUESS_RESULT, BUYER_INTEREST, MILESTONE, BADGE_EARNED, SYSTEM
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

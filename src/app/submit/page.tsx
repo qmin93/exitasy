@@ -1,0 +1,883 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Upload,
+  CreditCard,
+  FileText,
+  Rocket,
+  Loader2,
+} from 'lucide-react';
+import { Header } from '@/components/layout/Header';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { STAGE_CONFIG, StartupStage } from '@/types';
+import { cn } from '@/lib/utils';
+
+const STEPS = [
+  { id: 1, title: 'Basic Info', icon: FileText },
+  { id: 2, title: 'Revenue', icon: CreditCard },
+  { id: 3, title: 'Stage', icon: Check },
+  { id: 4, title: 'Launch', icon: Rocket },
+];
+
+const CATEGORIES = [
+  'AI',
+  'SaaS',
+  'NoCode',
+  'DevTools',
+  'Analytics',
+  'Productivity',
+  'Finance',
+  'E-commerce',
+  'Marketing',
+  'Design',
+];
+
+const INCLUDES_OPTIONS = [
+  'Source Code',
+  'Domain',
+  'Customer Base',
+  'Social Accounts',
+  'Support/Transition',
+  'Documentation',
+];
+
+interface FormData {
+  // Step 1
+  name: string;
+  tagline: string;
+  description: string;
+  website: string;
+  logo: string | null;
+  categories: string[];
+
+  // Step 2
+  verificationMethod: 'stripe' | 'paddle' | 'manual' | null;
+  proofFile: string | null;
+
+  // Step 3
+  stage: StartupStage | null;
+  askingPrice: string;
+  includes: string[];
+  sellReason: string;
+
+  // Step 4
+  screenshots: string[];
+  videoUrl: string;
+  sellabilityReasons: string[];
+  launchDate: 'now' | 'scheduled';
+}
+
+export default function SubmitStartupPage() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    tagline: '',
+    description: '',
+    website: '',
+    logo: null,
+    categories: [],
+    verificationMethod: null,
+    proofFile: null,
+    stage: null,
+    askingPrice: '',
+    includes: [],
+    sellReason: '',
+    screenshots: [],
+    videoUrl: '',
+    sellabilityReasons: ['', '', ''],
+    launchDate: 'now',
+  });
+
+  const progress = (currentStep / STEPS.length) * 100;
+
+  // Redirect to login if not authenticated
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-16 flex justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-16 text-center">
+          <h1 className="text-2xl font-bold mb-4">Sign in Required</h1>
+          <p className="text-muted-foreground mb-6">
+            Please sign in to submit your startup.
+          </p>
+          <Link href="/api/auth/signin">
+            <Button className="bg-orange-500 hover:bg-orange-600">Sign In</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const updateFormData = (updates: Partial<FormData>) => {
+    setFormData((prev) => ({ ...prev, ...updates }));
+  };
+
+  const toggleCategory = (category: string) => {
+    if (formData.categories.includes(category)) {
+      updateFormData({
+        categories: formData.categories.filter((c) => c !== category),
+      });
+    } else if (formData.categories.length < 3) {
+      updateFormData({
+        categories: [...formData.categories, category],
+      });
+    }
+  };
+
+  const toggleIncludes = (item: string) => {
+    if (formData.includes.includes(item)) {
+      updateFormData({
+        includes: formData.includes.filter((i) => i !== item),
+      });
+    } else {
+      updateFormData({
+        includes: [...formData.includes, item],
+      });
+    }
+  };
+
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          formData.name.length > 0 &&
+          formData.tagline.length > 0 &&
+          formData.description.length > 0 &&
+          formData.website.length > 0 &&
+          formData.categories.length > 0
+        );
+      case 2:
+        return formData.verificationMethod !== null;
+      case 3:
+        return formData.stage !== null;
+      case 4:
+        return true;
+      default:
+        return false;
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Convert stage to API format (uppercase with underscores)
+      const stageMap: Record<string, string> = {
+        making_money: 'MAKING_MONEY',
+        exit_ready: 'EXIT_READY',
+        acquisition_interest: 'ACQUISITION_INTEREST',
+        for_sale: 'FOR_SALE',
+        sold: 'SOLD',
+      };
+
+      const payload = {
+        name: formData.name,
+        tagline: formData.tagline,
+        description: formData.description,
+        website: formData.website,
+        logo: formData.logo,
+        screenshots: formData.screenshots,
+        videoUrl: formData.videoUrl || null,
+        categories: formData.categories,
+        stage: formData.stage ? stageMap[formData.stage] || formData.stage : 'MAKING_MONEY',
+        askingPrice: formData.askingPrice ? parseInt(formData.askingPrice.replace(/[^0-9]/g, '')) : null,
+        saleIncludes: formData.includes,
+        saleReason: formData.sellReason || null,
+        sellabilityReasons: formData.sellabilityReasons.filter((r) => r.trim() !== ''),
+      };
+
+      const res = await fetch('/api/startups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Failed to submit startup');
+      }
+
+      const startup = await res.json();
+
+      // Redirect to the new startup page
+      router.push(`/startup/${startup.slug}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+
+      <main className="container mx-auto px-4 py-8 max-w-3xl">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold mb-2">Add Your Startup to Exitasy</h1>
+          <p className="text-muted-foreground">
+            Share your verified revenue and join the community of money makers.
+          </p>
+        </div>
+
+        {/* Progress */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            {STEPS.map((step, index) => (
+              <div
+                key={step.id}
+                className={cn(
+                  'flex items-center gap-2',
+                  currentStep >= step.id
+                    ? 'text-orange-500'
+                    : 'text-muted-foreground'
+                )}
+              >
+                <div
+                  className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
+                    currentStep > step.id
+                      ? 'bg-orange-500 text-white'
+                      : currentStep === step.id
+                      ? 'bg-orange-100 text-orange-600 border-2 border-orange-500'
+                      : 'bg-gray-100 text-gray-400'
+                  )}
+                >
+                  {currentStep > step.id ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    step.id
+                  )}
+                </div>
+                <span className="hidden sm:inline text-sm font-medium">
+                  {step.title}
+                </span>
+                {index < STEPS.length - 1 && (
+                  <div
+                    className={cn(
+                      'hidden sm:block w-16 h-0.5 ml-2',
+                      currentStep > step.id ? 'bg-orange-500' : 'bg-gray-200'
+                    )}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <Progress value={progress} className="h-1" />
+        </div>
+
+        {/* Form Steps */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Step {currentStep} of {STEPS.length}: {STEPS[currentStep - 1].title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Step 1: Basic Info */}
+            {currentStep === 1 && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Startup Name *</label>
+                  <Input
+                    placeholder="e.g., FormFlow"
+                    value={formData.name}
+                    onChange={(e) => updateFormData({ name: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Tagline * (60 characters max)
+                  </label>
+                  <Input
+                    placeholder="e.g., No-code form builder for indie hackers"
+                    value={formData.tagline}
+                    onChange={(e) =>
+                      updateFormData({ tagline: e.target.value.slice(0, 60) })
+                    }
+                    maxLength={60}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {formData.tagline.length}/60
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Description * (500 characters max)
+                  </label>
+                  <Textarea
+                    placeholder="Describe what your product does..."
+                    value={formData.description}
+                    onChange={(e) =>
+                      updateFormData({
+                        description: e.target.value.slice(0, 500),
+                      })
+                    }
+                    maxLength={500}
+                    rows={4}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {formData.description.length}/500
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Website URL *</label>
+                  <Input
+                    placeholder="https://yourproduct.com"
+                    value={formData.website}
+                    onChange={(e) => updateFormData({ website: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Logo (400x400 recommended)
+                  </label>
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50">
+                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Drag and drop or click to upload
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Categories * (select up to 3)
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORIES.map((cat) => (
+                      <Badge
+                        key={cat}
+                        variant={
+                          formData.categories.includes(cat)
+                            ? 'default'
+                            : 'outline'
+                        }
+                        className={cn(
+                          'cursor-pointer',
+                          formData.categories.includes(cat) &&
+                            'bg-orange-500 hover:bg-orange-600'
+                        )}
+                        onClick={() => toggleCategory(cat)}
+                      >
+                        {cat}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Step 2: Revenue Verification */}
+            {currentStep === 2 && (
+              <>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Note:</strong> Exitasy only lists startups with
+                    verified revenue. Unverified submissions stay in a private
+                    queue until verified.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Stripe */}
+                  <div
+                    className={cn(
+                      'border-2 rounded-lg p-4 cursor-pointer transition-colors',
+                      formData.verificationMethod === 'stripe'
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    )}
+                    onClick={() =>
+                      updateFormData({ verificationMethod: 'stripe' })
+                    }
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <CreditCard className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">
+                          Connect Stripe{' '}
+                          <Badge variant="secondary" className="ml-2">
+                            Recommended
+                          </Badge>
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          We&apos;ll automatically pull your MRR and growth
+                          metrics. Read-only access.
+                        </p>
+                      </div>
+                      <div
+                        className={cn(
+                          'w-5 h-5 rounded-full border-2',
+                          formData.verificationMethod === 'stripe'
+                            ? 'border-orange-500 bg-orange-500'
+                            : 'border-gray-300'
+                        )}
+                      >
+                        {formData.verificationMethod === 'stripe' && (
+                          <Check className="h-4 w-4 text-white" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Paddle */}
+                  <div
+                    className={cn(
+                      'border-2 rounded-lg p-4 cursor-pointer transition-colors',
+                      formData.verificationMethod === 'paddle'
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    )}
+                    onClick={() =>
+                      updateFormData({ verificationMethod: 'paddle' })
+                    }
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <CreditCard className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">Connect Paddle</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Connect your Paddle account for automatic verification.
+                        </p>
+                      </div>
+                      <div
+                        className={cn(
+                          'w-5 h-5 rounded-full border-2',
+                          formData.verificationMethod === 'paddle'
+                            ? 'border-orange-500 bg-orange-500'
+                            : 'border-gray-300'
+                        )}
+                      >
+                        {formData.verificationMethod === 'paddle' && (
+                          <Check className="h-4 w-4 text-white" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Manual */}
+                  <div
+                    className={cn(
+                      'border-2 rounded-lg p-4 cursor-pointer transition-colors',
+                      formData.verificationMethod === 'manual'
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    )}
+                    onClick={() =>
+                      updateFormData({ verificationMethod: 'manual' })
+                    }
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <FileText className="h-6 w-6 text-gray-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">Manual Verification</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Upload screenshots or documents. Reviewed within 48
+                          hours.
+                        </p>
+                      </div>
+                      <div
+                        className={cn(
+                          'w-5 h-5 rounded-full border-2',
+                          formData.verificationMethod === 'manual'
+                            ? 'border-orange-500 bg-orange-500'
+                            : 'border-gray-300'
+                        )}
+                      >
+                        {formData.verificationMethod === 'manual' && (
+                          <Check className="h-4 w-4 text-white" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {formData.verificationMethod === 'manual' && (
+                    <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                      <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        Upload revenue screenshots (dashboard, bank statements,
+                        etc.)
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Step 3: Stage & Sale */}
+            {currentStep === 3 && (
+              <>
+                <div className="space-y-2 mb-6">
+                  <label className="text-sm font-medium">Current Stage *</label>
+                  <div className="space-y-3">
+                    {(
+                      Object.entries(STAGE_CONFIG) as [
+                        StartupStage,
+                        { label: string; color: string; emoji: string }
+                      ][]
+                    ).map(([stage, config]) => (
+                      <div
+                        key={stage}
+                        className={cn(
+                          'border-2 rounded-lg p-4 cursor-pointer transition-colors',
+                          formData.stage === stage
+                            ? 'border-orange-500 bg-orange-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        )}
+                        onClick={() => updateFormData({ stage })}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={cn(
+                              'w-5 h-5 rounded-full border-2',
+                              formData.stage === stage
+                                ? 'border-orange-500 bg-orange-500'
+                                : 'border-gray-300'
+                            )}
+                          >
+                            {formData.stage === stage && (
+                              <Check className="h-4 w-4 text-white" />
+                            )}
+                          </div>
+                          <span className="text-xl">{config.emoji}</span>
+                          <div>
+                            <div className="font-medium">{config.label}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {stage === 'making_money' &&
+                                'Generating revenue, focused on growth'}
+                              {stage === 'exit_ready' &&
+                                'Open to acquisition offers if the price is right'}
+                              {stage === 'acquisition_interest' &&
+                                'Actively received acquisition interest'}
+                              {stage === 'for_sale' &&
+                                'Actively looking for a buyer'}
+                              {stage === 'sold' && 'Successfully exited'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {(formData.stage === 'for_sale' ||
+                  formData.stage === 'exit_ready') && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Asking Price</label>
+                      <Input
+                        placeholder="$50,000"
+                        value={formData.askingPrice}
+                        onChange={(e) =>
+                          updateFormData({ askingPrice: e.target.value })
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Includes</label>
+                      <div className="flex flex-wrap gap-2">
+                        {INCLUDES_OPTIONS.map((item) => (
+                          <Badge
+                            key={item}
+                            variant={
+                              formData.includes.includes(item)
+                                ? 'default'
+                                : 'outline'
+                            }
+                            className={cn(
+                              'cursor-pointer',
+                              formData.includes.includes(item) &&
+                                'bg-orange-500 hover:bg-orange-600'
+                            )}
+                            onClick={() => toggleIncludes(item)}
+                          >
+                            {item}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Why are you selling? (optional)
+                      </label>
+                      <Textarea
+                        placeholder="Moving on to a new project..."
+                        value={formData.sellReason}
+                        onChange={(e) =>
+                          updateFormData({ sellReason: e.target.value })
+                        }
+                        rows={3}
+                      />
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Step 4: Media & Launch */}
+            {currentStep === 4 && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Screenshots (up to 5)
+                  </label>
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Drag and drop up to 5 screenshots
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Demo Video (optional)
+                  </label>
+                  <Input
+                    placeholder="https://youtube.com/watch?v=..."
+                    value={formData.videoUrl}
+                    onChange={(e) =>
+                      updateFormData({ videoUrl: e.target.value })
+                    }
+                  />
+                </div>
+
+                {(formData.stage === 'for_sale' ||
+                  formData.stage === 'exit_ready') && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      3 Reasons Why This Is Sellable
+                    </label>
+                    {formData.sellabilityReasons.map((reason, index) => (
+                      <Input
+                        key={index}
+                        placeholder={`Reason ${index + 1}...`}
+                        value={reason}
+                        onChange={(e) => {
+                          const newReasons = [...formData.sellabilityReasons];
+                          newReasons[index] = e.target.value;
+                          updateFormData({ sellabilityReasons: newReasons });
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Launch Date</label>
+                  <div className="space-y-2">
+                    <div
+                      className={cn(
+                        'border rounded-lg p-3 cursor-pointer',
+                        formData.launchDate === 'now'
+                          ? 'border-orange-500 bg-orange-50'
+                          : 'border-gray-200'
+                      )}
+                      onClick={() => updateFormData({ launchDate: 'now' })}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={cn(
+                            'w-4 h-4 rounded-full border-2',
+                            formData.launchDate === 'now'
+                              ? 'border-orange-500 bg-orange-500'
+                              : 'border-gray-300'
+                          )}
+                        />
+                        <span>Launch immediately</span>
+                      </div>
+                    </div>
+                    <div
+                      className={cn(
+                        'border rounded-lg p-3 cursor-pointer',
+                        formData.launchDate === 'scheduled'
+                          ? 'border-orange-500 bg-orange-50'
+                          : 'border-gray-200'
+                      )}
+                      onClick={() => updateFormData({ launchDate: 'scheduled' })}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={cn(
+                            'w-4 h-4 rounded-full border-2',
+                            formData.launchDate === 'scheduled'
+                              ? 'border-orange-500 bg-orange-500'
+                              : 'border-gray-300'
+                          )}
+                        />
+                        <span>Schedule for later</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preview */}
+                <div className="border-t pt-6 mt-6">
+                  <label className="text-sm font-medium mb-4 block">
+                    Preview:
+                  </label>
+                  <Card className="bg-gray-50">
+                    <CardContent className="p-4">
+                      <div className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                          <Button variant="outline" size="sm" className="h-12 w-10">
+                            <ChevronUp className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <Avatar className="h-12 w-12 rounded-lg">
+                          <AvatarFallback className="rounded-lg bg-gradient-to-br from-orange-400 to-pink-500 text-white">
+                            {formData.name.slice(0, 2).toUpperCase() || 'ST'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">
+                              {formData.name || 'Your Startup'}
+                            </span>
+                            {formData.stage && (
+                              <Badge
+                                className={cn(
+                                  'text-white text-xs',
+                                  STAGE_CONFIG[formData.stage].color
+                                )}
+                              >
+                                {STAGE_CONFIG[formData.stage].emoji}{' '}
+                                {STAGE_CONFIG[formData.stage].label}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {formData.tagline || 'Your tagline here'}
+                          </p>
+                          <div className="flex gap-2 mt-2">
+                            {formData.categories.map((cat) => (
+                              <span
+                                key={cat}
+                                className="text-xs text-muted-foreground"
+                              >
+                                #{cat}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
+            {/* Navigation */}
+            <div className="flex justify-between pt-6 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
+                disabled={currentStep === 1 || isSubmitting}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+
+              {currentStep < STEPS.length ? (
+                <Button
+                  onClick={() =>
+                    setCurrentStep((prev) => Math.min(STEPS.length, prev + 1))
+                  }
+                  disabled={!isStepValid()}
+                  className="bg-orange-500 hover:bg-orange-600"
+                >
+                  Next
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="bg-orange-500 hover:bg-orange-600"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="h-4 w-4 mr-2" />
+                      Submit for Review
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+}
+
+function ChevronUp({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <polyline points="18 15 12 9 6 15" />
+    </svg>
+  );
+}

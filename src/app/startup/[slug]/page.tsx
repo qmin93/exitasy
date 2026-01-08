@@ -1,0 +1,690 @@
+'use client';
+
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
+import {
+  ChevronUp,
+  MessageSquare,
+  Share2,
+  ExternalLink,
+  CheckCircle,
+  Eye,
+  Globe,
+  Loader2,
+} from 'lucide-react';
+import { Header } from '@/components/layout/Header';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { GuessGame } from '@/components/guess/GuessGame';
+import { CommentSection } from '@/components/comments/CommentSection';
+import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { Comment } from '@/types';
+
+// Transform API comment to Comment type
+interface APIComment {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    username: string | null;
+    image: string | null;
+  };
+  replies?: APIComment[];
+}
+
+function transformComment(apiComment: APIComment, startupId: string): Comment {
+  return {
+    id: apiComment.id,
+    userId: apiComment.user.id,
+    user: {
+      id: apiComment.user.id,
+      username: apiComment.user.username || 'anonymous',
+      email: '',
+      avatar: apiComment.user.image || `https://api.dicebear.com/7.x/avataaars/svg?seed=${apiComment.user.id}`,
+      bio: '',
+      badges: [],
+      guessAccuracy: 0,
+      guessRank: 0,
+      totalMRR: 0,
+      createdAt: new Date(),
+    },
+    startupId,
+    content: apiComment.content,
+    upvotes: 0,
+    replies: apiComment.replies?.map((reply) => transformComment(reply, startupId)),
+    createdAt: new Date(apiComment.createdAt),
+  };
+}
+
+// Stage config mapping
+const STAGE_CONFIG: Record<string, { label: string; emoji: string; color: string }> = {
+  MAKING_MONEY: { label: 'Making Money', emoji: '🟢', color: 'bg-green-500' },
+  EXIT_READY: { label: 'Exit-Ready', emoji: '🟡', color: 'bg-yellow-500' },
+  ACQUISITION_INTEREST: { label: 'Acquisition Interest', emoji: '🟠', color: 'bg-orange-500' },
+  FOR_SALE: { label: 'For Sale', emoji: '🔵', color: 'bg-blue-500' },
+  SOLD: { label: 'Sold', emoji: '🟣', color: 'bg-purple-500' },
+};
+
+interface StartupData {
+  id: string;
+  name: string;
+  slug: string;
+  tagline: string;
+  description: string;
+  logo: string | null;
+  website: string;
+  screenshots: string[];
+  categories: string[];
+  verificationStatus: string;
+  verificationProvider: string | null;
+  lastVerifiedAt: string | null;
+  currentMRR: number;
+  growthMoM: number;
+  revenueAge: number;
+  stage: string;
+  askingPrice: number | null;
+  saleMultiple: number | null;
+  saleIncludes: string[];
+  saleReason: string | null;
+  sellabilityReasons: string[];
+  upvoteCount: number;
+  commentCount: number;
+  guessCount: number;
+  buyerInterestCount: number;
+  todayRank: number | null;
+  makers: {
+    id: string;
+    role: string;
+    user: {
+      id: string;
+      name: string | null;
+      username: string | null;
+      image: string | null;
+      bio: string | null;
+      twitter: string | null;
+    };
+  }[];
+  comments: {
+    id: string;
+    content: string;
+    createdAt: string;
+    user: {
+      id: string;
+      name: string | null;
+      username: string | null;
+      image: string | null;
+    };
+    replies: {
+      id: string;
+      content: string;
+      createdAt: string;
+      user: {
+        id: string;
+        name: string | null;
+        username: string | null;
+        image: string | null;
+      };
+    }[];
+  }[];
+  _count: {
+    comments: number;
+    guesses: number;
+    upvotes: number;
+    buyerInterests: number;
+  };
+}
+
+function formatMRR(mrr: number): string {
+  if (mrr >= 1000) {
+    return `$${(mrr / 1000).toFixed(mrr >= 10000 ? 0 : 1)}K`;
+  }
+  return `$${mrr}`;
+}
+
+export default function StartupDetailPage() {
+  const params = useParams();
+  const slug = params.slug as string;
+  const { data: session } = useSession();
+
+  const [startup, setStartup] = useState<StartupData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [upvoted, setUpvoted] = useState(false);
+  const [upvoteCount, setUpvoteCount] = useState(0);
+  const [interested, setInterested] = useState(false);
+  const [interestCount, setInterestCount] = useState(0);
+  const [isUpvoting, setIsUpvoting] = useState(false);
+
+  useEffect(() => {
+    async function fetchStartup() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/startups/${slug}`);
+        if (!res.ok) {
+          if (res.status === 404) {
+            setError('Startup not found');
+          } else {
+            throw new Error('Failed to fetch startup');
+          }
+          return;
+        }
+        const data = await res.json();
+        setStartup(data);
+        setUpvoteCount(data.upvoteCount || 0);
+        setInterestCount(data.buyerInterestCount || 0);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Something went wrong');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (slug) {
+      fetchStartup();
+    }
+  }, [slug]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-16 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !startup) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-16 text-center">
+          <h1 className="text-2xl font-bold mb-4">{error || 'Startup not found'}</h1>
+          <Link href="/">
+            <Button>Back to Home</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const stageConfig = STAGE_CONFIG[startup.stage] || STAGE_CONFIG.MAKING_MONEY;
+  const isForSale = startup.stage === 'FOR_SALE' || startup.stage === 'EXIT_READY';
+
+  const handleUpvote = async () => {
+    if (!session) {
+      alert('Please sign in to upvote');
+      return;
+    }
+    if (isUpvoting) return;
+
+    setIsUpvoting(true);
+    try {
+      const res = await fetch(`/api/startups/${slug}/upvote`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUpvoted(data.upvoted);
+        setUpvoteCount(data.upvoteCount);
+      }
+    } catch (err) {
+      console.error('Failed to upvote:', err);
+    } finally {
+      setIsUpvoting(false);
+    }
+  };
+
+  const handleInterest = async () => {
+    if (!session) {
+      alert('Please sign in to express interest');
+      return;
+    }
+    if (interested) return;
+
+    try {
+      const res = await fetch(`/api/startups/${slug}/interest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isAnonymous: true }),
+      });
+      if (res.ok) {
+        setInterested(true);
+        setInterestCount((prev) => prev + 1);
+      }
+    } catch (err) {
+      console.error('Failed to express interest:', err);
+    }
+  };
+
+  // Get comments from startup data and transform to Comment type
+  const transformedComments: Comment[] = (startup.comments || []).map((c) =>
+    transformComment(c as APIComment, startup.id)
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+
+      <main className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Header Section */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex gap-6">
+                  {/* Logo */}
+                  <Avatar className="h-20 w-20 rounded-xl">
+                    <AvatarImage src={startup.logo || undefined} alt={startup.name} />
+                    <AvatarFallback className="rounded-xl bg-gradient-to-br from-orange-400 to-pink-500 text-white text-2xl font-bold">
+                      {startup.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  {/* Info */}
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h1 className="text-2xl font-bold">{startup.name}</h1>
+                        <p className="text-muted-foreground mt-1">
+                          {startup.tagline}
+                        </p>
+                      </div>
+
+                      {/* Ranking Badge */}
+                      {startup.todayRank && (
+                        <div className="text-center bg-orange-100 rounded-lg px-4 py-2">
+                          <div className="text-2xl font-bold text-orange-600">
+                            #{startup.todayRank}
+                          </div>
+                          <div className="text-xs text-orange-600">TODAY</div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Badges */}
+                    <div className="flex items-center gap-2 mt-4 flex-wrap">
+                      {startup.verificationStatus === 'VERIFIED' && (
+                        <Badge
+                          variant="outline"
+                          className="bg-green-50 text-green-700 border-green-200"
+                        >
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Verified
+                        </Badge>
+                      )}
+                      <Badge className={cn('text-white', stageConfig.color)}>
+                        {stageConfig.emoji} {stageConfig.label}
+                      </Badge>
+                      {isForSale && startup.askingPrice && (
+                        <Badge
+                          variant="outline"
+                          className="bg-blue-50 text-blue-700 border-blue-200"
+                        >
+                          FOR SALE
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-3 mt-4">
+                      <Button
+                        variant={upvoted ? 'default' : 'outline'}
+                        className={cn(
+                          'gap-2',
+                          upvoted && 'bg-orange-500 hover:bg-orange-600'
+                        )}
+                        onClick={handleUpvote}
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                        Upvote ({upvoteCount})
+                      </Button>
+                      <Button variant="outline" className="gap-2">
+                        <MessageSquare className="h-4 w-4" />
+                        Comment
+                      </Button>
+                      <Button variant="outline" className="gap-2">
+                        <Share2 className="h-4 w-4" />
+                        Share
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tabs */}
+            <Tabs defaultValue="details">
+              <TabsList className="w-full justify-start">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="revenue">Revenue</TabsTrigger>
+                <TabsTrigger value="comments">
+                  Comments ({transformedComments.length})
+                </TabsTrigger>
+                {startup.sellabilityReasons.length > 0 && (
+                  <TabsTrigger value="sellability">Why Sellable</TabsTrigger>
+                )}
+              </TabsList>
+
+              <TabsContent value="details" className="space-y-6">
+                {/* Screenshots */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Screenshots</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
+                      <span className="text-muted-foreground">
+                        Product Screenshot
+                      </span>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className="w-20 h-14 bg-gray-100 rounded cursor-pointer hover:ring-2 ring-orange-500"
+                        />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Description */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">About</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">{startup.description}</p>
+
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {startup.categories.map((cat) => (
+                        <Badge key={cat} variant="secondary">
+                          #{cat}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="revenue" className="space-y-6">
+                {/* Revenue Stats */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      Revenue Stats
+                      {startup.verificationStatus === 'VERIFIED' && startup.verificationProvider && (
+                        <Badge
+                          variant="outline"
+                          className="ml-2 bg-green-50 text-green-700"
+                        >
+                          Verified via {startup.verificationProvider}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold">
+                          {formatMRR(startup.currentMRR)}
+                        </div>
+                        <div className="text-sm text-muted-foreground">MRR</div>
+                      </div>
+                      <div className="text-center p-4 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">
+                          +{startup.growthMoM}%
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Growth MoM
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold">
+                          {startup.revenueAge} mo
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Revenue Age
+                        </div>
+                      </div>
+                    </div>
+
+                    {startup.lastVerifiedAt && (
+                      <p className="text-xs text-muted-foreground mt-4 text-center">
+                        Last verified:{' '}
+                        {formatDistanceToNow(new Date(startup.lastVerifiedAt), {
+                          addSuffix: true,
+                        })}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* For Sale Details */}
+                {isForSale && startup.askingPrice && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">For Sale Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 bg-blue-50 rounded-lg">
+                          <div className="text-2xl font-bold text-blue-700">
+                            ${(startup.askingPrice / 1000).toFixed(0)}K
+                          </div>
+                          <div className="text-sm text-blue-600">
+                            Asking Price
+                          </div>
+                        </div>
+                        {startup.saleMultiple && (
+                          <div className="p-4 bg-blue-50 rounded-lg">
+                            <div className="text-2xl font-bold text-blue-700">
+                              {startup.saleMultiple}x
+                            </div>
+                            <div className="text-sm text-blue-600">Multiple</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {startup.saleIncludes && startup.saleIncludes.length > 0 && (
+                        <div>
+                          <h4 className="font-medium mb-2">Includes:</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {startup.saleIncludes.map((item) => (
+                              <Badge key={item} variant="outline">
+                                {item}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {startup.saleReason && (
+                        <div>
+                          <h4 className="font-medium mb-2">Why selling:</h4>
+                          <p className="text-muted-foreground">
+                            {startup.saleReason}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-4 border-t">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Eye className="h-4 w-4" />
+                          <span>{interestCount} people interested</span>
+                        </div>
+                        <Button
+                          onClick={handleInterest}
+                          disabled={interested}
+                          className={cn(
+                            interested
+                              ? 'bg-green-500'
+                              : 'bg-blue-500 hover:bg-blue-600'
+                          )}
+                        >
+                          {interested ? "You're Interested" : "I'm Interested"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="comments">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      Discussion ({startup._count?.comments || transformedComments.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CommentSection
+                      comments={transformedComments}
+                      makerId={startup.makers[0]?.user?.id}
+                      startupId={startup.id}
+                      startupSlug={startup.slug}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {startup.sellabilityReasons.length > 0 && (
+                <TabsContent value="sellability">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Why This Is Sellable</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3">
+                        {startup.sellabilityReasons.map((reason, index) => (
+                          <li key={index} className="flex items-start gap-3">
+                            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                            <span>{reason}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
+            </Tabs>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Upvote Card */}
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Button
+                  size="lg"
+                  className={cn(
+                    'w-full h-16 text-lg gap-2',
+                    upvoted
+                      ? 'bg-orange-500 hover:bg-orange-600'
+                      : 'bg-gray-900 hover:bg-gray-800'
+                  )}
+                  onClick={handleUpvote}
+                >
+                  <ChevronUp className="h-6 w-6" />
+                  UPVOTE ({upvoteCount})
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Guess Game */}
+            <GuessGame
+              startupName={startup.name}
+              startupSlug={startup.slug}
+              actualMRR={startup.currentMRR}
+              totalGuesses={startup.guessCount}
+            />
+
+            {/* Company Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Company Info</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <a
+                  href={startup.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm hover:text-orange-500"
+                >
+                  <Globe className="h-4 w-4" />
+                  {startup.website.replace('https://', '')}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+
+                <Separator />
+
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Makers</h4>
+                  {startup.makers.map((maker) => (
+                    <Link
+                      key={maker.id}
+                      href={`/user/${maker.user.username}`}
+                      className="flex items-center gap-3 hover:bg-muted/50 -mx-2 px-2 py-2 rounded-md"
+                    >
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={maker.user.image || undefined} />
+                        <AvatarFallback>
+                          {(maker.user.username || maker.user.name || 'U').slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium">@{maker.user.username || 'unknown'}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {maker.role || 'Maker'}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Tags</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {startup.categories.map((cat) => (
+                      <Badge key={cat} variant="secondary" className="text-xs">
+                        #{cat}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Share Trophy */}
+            <Card>
+              <CardContent className="p-4">
+                <Button variant="outline" className="w-full gap-2">
+                  <Share2 className="h-4 w-4" />
+                  Share Trophy Card
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
