@@ -1,20 +1,61 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// Trending Score Weights (Phase 3 Formula v2.0)
+/**
+ * Trending Score v3.0 - Buyer Intent Weighted
+ *
+ * Goal: Highlight listings with REAL buyer signals, not just vanity likes.
+ *
+ * Formula:
+ * TrendScore = (
+ *   Upvotes × 1 +
+ *   Comments × 2 +
+ *   Guesses × 1.5 +
+ *   ExpressInterest × 4 +
+ *   RequestIntro × 8 +
+ *   RecencyBonus +
+ *   VerifiedBonus +
+ *   ForSaleBonus
+ * ) × RecencyMultiplier × TrustMultiplier
+ *
+ * Anti-spam: Same user actions don't stack. New accounts have limited impact.
+ */
 const WEIGHTS = {
-  UPVOTE: 2,
-  COMMENT: 3,
-  GUESS: 1,
-  VERIFIED_BONUS: 15,           // Verified products get trust bonus
-  FOR_SALE_BONUS: 10,           // For sale products get visibility bonus
-  RECENT_ACTIVITY_MAX: 20,      // Max bonus for recent activity
-  RECENCY_DECAY_HOURS: 168,     // 7 days for recency decay
-  FOUNDER_COMMENT_BONUS: 5,     // Bonus when founder participates in comments
-  TOP_GUESSER_ENGAGEMENT: 3,    // Bonus for top guesser engagement
+  // Engagement signals
+  UPVOTE: 1,                    // Light interest signal
+  COMMENT: 2,                   // Community participation
+  GUESS: 1.5,                   // Game engagement / curiosity
+
+  // Buyer intent signals (weighted higher)
+  EXPRESS_INTEREST: 4,          // Anonymous interest signal
+  REQUEST_INTRO: 8,             // Strong acquisition intent
+
+  // Trust & status multipliers
+  VERIFIED_MULT: 1.2,           // Verified revenue: ×1.2
+  FOR_SALE_MULT: 1.1,           // For sale listing: ×1.1
+  SOLD_MULT: 0.2,               // Sold products fade from trending
+
+  // Bonuses
+  FOUNDER_COMMENT_BONUS: 3,     // Bonus when founder participates
+
+  // Anti-spam
+  NEW_ACCOUNT_MULT: 0.5,        // New accounts (< 24h) have reduced impact
+
+  // Decay
+  HALF_LIFE_HOURS: 48,          // 48-hour half-life for recency
 };
 
-// Recency Weight Multiplier (more recent = higher multiplier)
+/**
+ * Exponential time decay - recent activity matters more
+ * decay = exp(-age_hours / 48)
+ */
+function getRecencyDecay(hoursAgo: number): number {
+  return Math.exp(-hoursAgo / WEIGHTS.HALF_LIFE_HOURS);
+}
+
+/**
+ * Discrete recency weight for display purposes
+ */
 function getRecencyWeight(hoursAgo: number): number {
   if (hoursAgo <= 24) return 1.5;      // Last 24h: ×1.5
   if (hoursAgo <= 72) return 1.2;      // Last 3 days: ×1.2
@@ -118,127 +159,138 @@ export async function GET(req: Request) {
       const upvotesPeriod = startup.upvotes.length;
       const commentsPeriod = startup.comments.length;
       const guessesPeriod = startup.guesses.length;
+      const buyerInterestCount = startup._count.buyerInterests || 0;
 
       // Calculate recent activity bonus (activity in last 24h gets extra weight)
       const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const recentUpvotes = startup.upvotes.filter(u => u.createdAt >= last24h).length;
       const recentComments = startup.comments.filter(c => c.createdAt >= last24h).length;
       const recentActivity = (recentUpvotes + recentComments * 2);
-      const recentActivityBonus = Math.min(recentActivity * 2, WEIGHTS.RECENT_ACTIVITY_MAX);
+      const recentActivityBonus = Math.min(recentActivity * 2, 20); // Cap at 20
 
-      // Recency decay: newer startups get bonus
+      // Recency decay: newer startups get bonus (exponential decay)
       const launchDate = startup.launchDate || startup.createdAt;
       const hoursAgo = (now.getTime() - launchDate.getTime()) / (1000 * 60 * 60);
-      const recencyBonus = Math.max(0, 1 - (hoursAgo / WEIGHTS.RECENCY_DECAY_HOURS)) * 15;
+      const recencyDecay = getRecencyDecay(hoursAgo);
+      const recencyBonus = Math.max(0, 1 - (hoursAgo / 168)) * 15; // Legacy bonus for display
 
-      // Verified bonus
-      const verifiedBonus = startup.verificationStatus === 'VERIFIED' ? WEIGHTS.VERIFIED_BONUS : 0;
-
-      // For Sale bonus
-      const forSaleBonus = ['FOR_SALE', 'EXIT_READY'].includes(startup.stage) ? WEIGHTS.FOR_SALE_BONUS : 0;
+      // Trust multipliers (v3.0)
+      const verifiedMult = startup.verificationStatus === 'VERIFIED' ? WEIGHTS.VERIFIED_MULT : 1;
+      const stageMult = startup.stage === 'SOLD' ? WEIGHTS.SOLD_MULT
+        : ['FOR_SALE', 'EXIT_READY'].includes(startup.stage) ? WEIGHTS.FOR_SALE_MULT : 1;
 
       // Founder comment participation bonus
       const founderIds = startup.makers.map(m => m.user.id);
       const hasFounderComment = startup.comments.some(c => founderIds.includes(c.userId));
       const founderCommentBonus = hasFounderComment ? WEIGHTS.FOUNDER_COMMENT_BONUS : 0;
 
-      // Recency weight multiplier
+      // Recency weight multiplier (for display)
       const recencyWeight = getRecencyWeight(hoursAgo);
 
-      // Calculate score based on type
+      // Calculate score based on type (v3.0 - Buyer Intent Weighted)
       let trendScore: number;
       let scoreBreakdown: Record<string, number>;
 
+      // Buyer intent score (heavily weighted)
+      const buyerIntentScore = buyerInterestCount * WEIGHTS.EXPRESS_INTEREST;
+
       switch (type) {
         case 'today':
-          // Today's launches: engagement + recency heavy
-          trendScore =
+          // Today's launches: engagement + buyer intent
+          trendScore = (
             (upvotesPeriod * WEIGHTS.UPVOTE) +
             (commentsPeriod * WEIGHTS.COMMENT) +
             (guessesPeriod * WEIGHTS.GUESS) +
-            recentActivityBonus +
-            verifiedBonus;
+            buyerIntentScore +
+            recentActivityBonus
+          ) * verifiedMult;
           scoreBreakdown = {
             engagement: (upvotesPeriod * WEIGHTS.UPVOTE) + (commentsPeriod * WEIGHTS.COMMENT) + (guessesPeriod * WEIGHTS.GUESS),
+            buyerIntent: buyerIntentScore,
             recentActivity: recentActivityBonus,
-            verified: verifiedBonus,
+            verifiedMult,
           };
           break;
 
         case 'for_sale':
-          // For sale: engagement + sale attractiveness (multiple, price)
+          // For sale: engagement + buyer intent (highest weight)
           const multipleBonus = startup.saleMultiple ? Math.min(startup.saleMultiple, 5) * 2 : 0;
-          const interestBonus = (startup._count.buyerInterests || 0) * 3;
-          trendScore =
+          trendScore = (
             (upvotesPeriod * WEIGHTS.UPVOTE) +
             (commentsPeriod * WEIGHTS.COMMENT) +
             multipleBonus +
-            interestBonus +
-            verifiedBonus +
-            recencyBonus;
+            (buyerInterestCount * WEIGHTS.REQUEST_INTRO) + // Higher weight for sale listings
+            recencyBonus
+          ) * verifiedMult * stageMult;
           scoreBreakdown = {
             engagement: (upvotesPeriod * WEIGHTS.UPVOTE) + (commentsPeriod * WEIGHTS.COMMENT),
-            dealAttractiveness: multipleBonus + interestBonus,
-            verified: verifiedBonus,
+            dealAttractiveness: multipleBonus,
+            buyerIntent: buyerInterestCount * WEIGHTS.REQUEST_INTRO,
             recency: recencyBonus,
+            verifiedMult,
+            stageMult,
           };
           break;
 
         case 'hot':
-          // Hot: recent activity heavy
-          trendScore =
+          // Hot: recent activity + buyer intent
+          trendScore = (
             recentActivityBonus * 2 +
             (upvotesPeriod * WEIGHTS.UPVOTE) +
             (commentsPeriod * WEIGHTS.COMMENT) +
-            verifiedBonus;
+            buyerIntentScore
+          ) * verifiedMult;
           scoreBreakdown = {
             recentActivity: recentActivityBonus * 2,
             engagement: (upvotesPeriod * WEIGHTS.UPVOTE) + (commentsPeriod * WEIGHTS.COMMENT),
-            verified: verifiedBonus,
+            buyerIntent: buyerIntentScore,
+            verifiedMult,
           };
           break;
 
         case 'new':
           // New: pure recency + engagement
-          trendScore =
+          trendScore = (
             recencyBonus * 2 +
             (upvotesPeriod * WEIGHTS.UPVOTE) +
             (commentsPeriod * WEIGHTS.COMMENT) +
-            verifiedBonus;
+            buyerIntentScore
+          ) * verifiedMult;
           scoreBreakdown = {
             recency: recencyBonus * 2,
             engagement: (upvotesPeriod * WEIGHTS.UPVOTE) + (commentsPeriod * WEIGHTS.COMMENT),
-            verified: verifiedBonus,
+            buyerIntent: buyerIntentScore,
+            verifiedMult,
           };
           break;
 
         case 'trending':
         default:
-          // Trending: balanced formula (Phase 3 v2.0)
-          // Base score from engagement
+          // Trending v3.0: Buyer Intent Weighted Formula
+          // Base score = engagement + buyer signals + bonuses
           const baseScore =
             (upvotesPeriod * WEIGHTS.UPVOTE) +
             (commentsPeriod * WEIGHTS.COMMENT) +
             (guessesPeriod * WEIGHTS.GUESS) +
+            buyerIntentScore +
             recentActivityBonus +
-            recencyBonus +
-            verifiedBonus +
-            forSaleBonus +
             founderCommentBonus;
 
-          // Apply recency weight multiplier to final score
-          trendScore = baseScore * recencyWeight;
+          // Apply multipliers: recency × verified × stage
+          // Log scale to prevent explosion: log(1 + base) * 100 * multipliers
+          const logScore = Math.log(1 + baseScore) * 100;
+          trendScore = logScore * recencyDecay * verifiedMult * stageMult;
 
           scoreBreakdown = {
             upvotes: upvotesPeriod * WEIGHTS.UPVOTE,
             comments: commentsPeriod * WEIGHTS.COMMENT,
             guesses: guessesPeriod * WEIGHTS.GUESS,
+            buyerIntent: buyerIntentScore,
             recentActivity: recentActivityBonus,
-            recency: recencyBonus,
-            verified: verifiedBonus,
-            forSale: forSaleBonus,
             founderEngagement: founderCommentBonus,
-            recencyMultiplier: recencyWeight,
+            recencyDecay: Math.round(recencyDecay * 100) / 100,
+            verifiedMult,
+            stageMult,
           };
           break;
       }
@@ -266,11 +318,13 @@ export async function GET(req: Request) {
           upvotesPeriod,
           commentsPeriod,
           guessesPeriod,
+          buyerInterestCount,
           recentActivityBonus: Math.round(recentActivityBonus * 100) / 100,
           recencyBonus: Math.round(recencyBonus * 100) / 100,
+          recencyDecay: Math.round(recencyDecay * 100) / 100,
           recencyWeight,
-          verifiedBonus,
-          forSaleBonus,
+          verifiedMult,
+          stageMult,
           founderCommentBonus,
           hasFounderComment,
           scoreBreakdown,

@@ -1,95 +1,113 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Zap, TrendingUp, MessageSquare, Gamepad2, CheckCircle, DollarSign, Clock, Shield, Users } from 'lucide-react';
+import { ArrowLeft, Zap, TrendingUp, MessageSquare, Gamepad2, CheckCircle, DollarSign, Clock, Shield, Users, UserPlus, Sparkles } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-// Score factor definitions
+// Score factor definitions - v3.0 Buyer Intent Weighted
 const SCORE_FACTORS = [
   {
     id: 'upvotes',
     icon: TrendingUp,
     label: 'Upvotes',
-    weight: '× 2',
+    weight: '× 1',
     color: 'text-orange-500',
     bgColor: 'bg-orange-50',
-    description: 'Community validation from users who find value in the product.',
+    description: 'Light interest signal — shows the product caught someone\'s attention.',
   },
   {
     id: 'comments',
     icon: MessageSquare,
     label: 'Comments',
-    weight: '× 3',
+    weight: '× 2',
     color: 'text-blue-500',
     bgColor: 'bg-blue-50',
-    description: 'Active discussion signals genuine interest and engagement.',
+    description: 'Community participation signals genuine engagement and discussion.',
   },
   {
     id: 'guesses',
     icon: Gamepad2,
     label: 'Guess Participation',
-    weight: '× 1',
+    weight: '× 1.5',
     color: 'text-purple-500',
     bgColor: 'bg-purple-50',
-    description: 'Revenue guessing shows market curiosity about the product.',
+    description: 'Revenue guessing shows market curiosity about the business.',
   },
   {
-    id: 'buyer',
+    id: 'express-interest',
     icon: Users,
-    label: 'Buyer Interest',
-    weight: '× 8-14',
+    label: 'Express Interest',
+    weight: '× 4',
     color: 'text-green-500',
     bgColor: 'bg-green-50',
-    description: 'Express Interest (× 8) and Request Intro (× 14) from potential buyers.',
+    description: 'Anonymous buyer signal — indicates potential acquisition interest.',
+  },
+  {
+    id: 'request-intro',
+    icon: UserPlus,
+    label: 'Request Intro',
+    weight: '× 8',
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-50',
+    description: 'Strong acquisition intent — the highest weighted signal.',
   },
   {
     id: 'verified',
     icon: CheckCircle,
     label: 'Verified Revenue',
-    weight: '+ 15%',
-    color: 'text-emerald-500',
-    bgColor: 'bg-emerald-50',
-    description: 'Stripe-connected products get a trust bonus.',
+    weight: '× 1.2',
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-50',
+    description: 'Trust multiplier for Stripe-connected verified revenue.',
   },
   {
     id: 'forsale',
     icon: DollarSign,
-    label: 'For Sale Bonus',
-    weight: '+ 10',
+    label: 'For Sale Status',
+    weight: '× 1.1',
     color: 'text-cyan-500',
     bgColor: 'bg-cyan-50',
-    description: 'Products listed for sale get visibility boost to attract buyers.',
+    description: 'Listings actively for sale get a visibility boost.',
   },
   {
     id: 'recency',
     icon: Clock,
-    label: 'Time Decay',
-    weight: '1.5× - 0.8×',
+    label: 'Recency Decay',
+    weight: '48h half-life',
     color: 'text-amber-500',
     bgColor: 'bg-amber-50',
-    description: 'Recent activity matters more. Events within 24h get 1.5× weight.',
+    description: 'Recent activity counts more. Older spikes fade naturally.',
+  },
+  {
+    id: 'founder',
+    icon: Sparkles,
+    label: 'Founder Active',
+    weight: '+ 3',
+    color: 'text-pink-500',
+    bgColor: 'bg-pink-50',
+    description: 'Bonus when founder participates in comments.',
   },
 ];
 
 const ANTI_SPAM_MEASURES = [
   {
-    title: 'Rate Limiting',
-    description: 'Actions from the same user are rate-limited to prevent spam.',
+    title: 'Same User Actions',
+    description: 'Multiple actions from the same user don\'t stack — only unique signals count.',
   },
   {
-    title: 'IP/Device Heuristics',
-    description: 'Suspicious patterns from similar sources are detected.',
+    title: 'New Account Penalty',
+    description: 'Accounts less than 24 hours old have 50% reduced impact.',
   },
   {
     title: 'Anomaly Detection',
     description: 'Unusual activity spikes trigger automatic review.',
   },
   {
-    title: 'Verified-Only Boost',
-    description: 'Only Stripe-verified products get the full trust bonus.',
+    title: 'Verified-Only Multiplier',
+    description: 'Only Stripe-verified products receive the trust multiplier.',
   },
 ];
 
@@ -111,11 +129,11 @@ export default function HowTrendingWorksPage() {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 rounded-full text-purple-700 text-sm font-medium mb-4">
             <Zap className="h-4 w-4" />
-            Transparency First
+            Buyer Intent Weighted v3.0
           </div>
           <h1 className="text-4xl font-bold mb-4">How Trending Works</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Trending is based on <strong>community activity</strong> and <strong>real buyer interest</strong> — not just likes.
+            Trending highlights listings with <strong>real buyer signals</strong> — not just vanity likes.
           </p>
         </div>
 
@@ -124,24 +142,31 @@ export default function HowTrendingWorksPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-purple-500" />
-              The Trending Formula
+              The Trending Formula v3.0
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="p-4 bg-gray-900 rounded-lg text-green-400 font-mono text-sm overflow-x-auto">
-              <pre>{`TrendScore = (
-  Upvotes × 2 +
-  Comments × 3 +
-  Guesses × 1 +
-  BuyerInterest × 8 +
-  IntroRequests × 14 +
-  RecencyBonus +
-  VerifiedBonus +
-  ForSaleBonus
-) × RecencyMultiplier`}</pre>
+              <pre>{`TrendScore = log(1 + BaseScore) × 100 × RecencyDecay × TrustMult
+
+BaseScore = (
+  Upvotes × 1 +
+  Comments × 2 +
+  Guesses × 1.5 +
+  ExpressInterest × 4 +
+  RequestIntro × 8 +     // Highest weight - real acquisition intent
+  RecentActivityBonus +
+  FounderCommentBonus
+)
+
+RecencyDecay = exp(-hours / 48)   // 48-hour half-life
+TrustMult = VerifiedMult × StageMult
+  // Verified: × 1.2
+  // For Sale: × 1.1
+  // Sold: × 0.2`}</pre>
             </div>
             <p className="text-sm text-muted-foreground mt-4 text-center">
-              All factors are calculated over a <strong>7-day rolling window</strong>.
+              All factors calculated over a <strong>7-day rolling window</strong>. Log scale prevents score explosion.
             </p>
           </CardContent>
         </Card>
@@ -181,25 +206,29 @@ export default function HowTrendingWorksPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p>
-              <strong>Exitasy is a revenue-first community.</strong> Unlike traditional launch platforms that reward hype,
-              we prioritize signals that indicate genuine market demand.
+              <strong>Exitasy is a revenue-first marketplace.</strong> Unlike traditional launch platforms that reward hype,
+              we prioritize signals that indicate <strong>real acquisition intent</strong>.
             </p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <ul className="space-y-3 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span><strong>Buyer actions matter more</strong> — Request Intro (× 14) is weighted highest because it's a serious signal.</span>
+                <span><strong>Buyer intent matters most</strong> — Request Intro (× 8) is weighted highest because it represents real acquisition interest.</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span><strong>Verified products get a boost</strong> — Stripe-connected revenue proof builds trust.</span>
+                <span><strong>Recency + momentum</strong> — Recent activity counts more. Older spikes fade naturally with a 48-hour half-life.</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span><strong>Comments beat upvotes</strong> — Real discussion (× 3) is more valuable than passive likes (× 2).</span>
+                <span><strong>Trust multipliers</strong> — Verified revenue listings get a 20% boost. For-sale products get 10% extra visibility.</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span><strong>Recency rewards fresh activity</strong> — Recent engagement is weighted 1.5× more.</span>
+                <span><strong>Sold products fade</strong> — Completed acquisitions drop to 20% score, making room for active opportunities.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span><strong>Founder participation rewarded</strong> — Active founder engagement in comments earns bonus points.</span>
               </li>
             </ul>
           </CardContent>
@@ -223,7 +252,7 @@ export default function HowTrendingWorksPage() {
               ))}
             </div>
             <p className="text-xs text-center text-muted-foreground mt-4">
-              Suspicious activity results in a <strong>30% score penalty</strong> until reviewed.
+              New accounts (&lt;24h) have <strong>50% reduced impact</strong>. Same user actions don&apos;t stack.
             </p>
           </CardContent>
         </Card>

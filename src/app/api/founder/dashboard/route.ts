@@ -110,6 +110,66 @@ export async function GET() {
       take: 20,
     });
 
+    // Get detailed startup data for checklist
+    const startupsWithDetails = await prisma.startup.findMany({
+      where: { id: { in: startupIds } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        verificationStatus: true,
+        logo: true,
+        tagline: true,
+        description: true,
+        currentMRR: true,
+        growthMoM: true,
+        website: true,
+        stage: true,
+        askingPrice: true,
+        saleMultiple: true,
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
+      },
+    });
+
+    // Calculate checklist items for each startup
+    const startupsChecklist = startupsWithDetails.map((startup) => {
+      const hasLogo = !!startup.logo;
+      const hasTagline = !!startup.tagline && startup.tagline.length > 10;
+      const hasDescription = !!startup.description && startup.description.length > 100;
+      const hasWebsite = !!startup.website;
+      const isVerified = startup.verificationStatus === 'VERIFIED';
+      const hasRevenue = startup.currentMRR > 0;
+      const hasGrowth = startup.growthMoM !== null;
+      const hasForSaleInfo = startup.stage === 'FOR_SALE' ? (!!startup.askingPrice && !!startup.saleMultiple) : true;
+
+      // Calculate completion percentage
+      const checkItems = [hasLogo, hasTagline, hasDescription, hasWebsite, hasRevenue, hasGrowth];
+      const completedItems = checkItems.filter(Boolean).length;
+      const completionPercent = Math.round((completedItems / checkItems.length) * 100);
+
+      return {
+        id: startup.id,
+        name: startup.name,
+        slug: startup.slug,
+        checklist: {
+          hasLogo,
+          hasTagline,
+          hasDescription,
+          hasWebsite,
+          isVerified,
+          hasRevenue,
+          hasGrowth,
+          hasForSaleInfo,
+        },
+        completionPercent,
+        verificationStatus: startup.verificationStatus,
+      };
+    });
+
     const pipelineCounts = await prisma.buyerAccessRequest.groupBy({
       by: ['status'],
       where: { startupId: { in: startupIds } },
@@ -196,6 +256,7 @@ export async function GET() {
         requests: accessRequests,
       },
       recentActivity,
+      startupsChecklist,
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error);

@@ -22,6 +22,13 @@ import {
   Flame,
   Activity,
   BarChart3,
+  ListChecks,
+  Image,
+  FileText,
+  Globe,
+  Sparkles,
+  BadgeCheck,
+  Percent,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -29,6 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 
 interface Startup {
@@ -87,6 +95,24 @@ interface ActivityLog {
   } | null;
 }
 
+interface StartupChecklist {
+  id: string;
+  name: string;
+  slug: string;
+  checklist: {
+    hasLogo: boolean;
+    hasTagline: boolean;
+    hasDescription: boolean;
+    hasWebsite: boolean;
+    isVerified: boolean;
+    hasRevenue: boolean;
+    hasGrowth: boolean;
+    hasForSaleInfo: boolean;
+  };
+  completionPercent: number;
+  verificationStatus: string;
+}
+
 interface DashboardData {
   startups: Startup[];
   todaySnapshot: {
@@ -106,6 +132,7 @@ interface DashboardData {
     requests: AccessRequest[];
   };
   recentActivity: ActivityLog[];
+  startupsChecklist: StartupChecklist[];
 }
 
 const BUDGET_LABELS: Record<string, string> = {
@@ -564,6 +591,151 @@ export default function FounderDashboardPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* ============================================ */}
+            {/* PROFILE CHECKLIST                          */}
+            {/* ============================================ */}
+            {data.startupsChecklist && data.startupsChecklist.length > 0 && (
+              <Card className="border-t-4 border-t-purple-500">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ListChecks className="h-5 w-5 text-purple-500" />
+                    Profile Checklist
+                  </CardTitle>
+                  <CardDescription>
+                    Complete your profile to attract more buyers
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {data.startupsChecklist.map((item) => (
+                    <div key={item.id} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Link
+                          href={`/startup/${item.slug}`}
+                          className="font-medium text-sm hover:text-purple-600 transition-colors"
+                        >
+                          {item.name}
+                        </Link>
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            'text-xs',
+                            item.completionPercent === 100
+                              ? 'bg-green-100 text-green-700'
+                              : item.completionPercent >= 70
+                                ? 'bg-yellow-100 text-yellow-700'
+                                : 'bg-red-100 text-red-700'
+                          )}
+                        >
+                          {item.completionPercent}%
+                        </Badge>
+                      </div>
+                      <Progress value={item.completionPercent} className="h-1.5" />
+                      <div className="grid grid-cols-2 gap-1.5 text-xs">
+                        <div
+                          className={cn(
+                            'flex items-center gap-1.5 px-2 py-1 rounded',
+                            item.checklist.hasLogo
+                              ? 'text-green-700 bg-green-50'
+                              : 'text-gray-400 bg-gray-50'
+                          )}
+                        >
+                          {item.checklist.hasLogo ? (
+                            <CheckCircle className="h-3 w-3" />
+                          ) : (
+                            <Image className="h-3 w-3" />
+                          )}
+                          Logo
+                        </div>
+                        <div
+                          className={cn(
+                            'flex items-center gap-1.5 px-2 py-1 rounded',
+                            item.checklist.hasTagline
+                              ? 'text-green-700 bg-green-50'
+                              : 'text-gray-400 bg-gray-50'
+                          )}
+                        >
+                          {item.checklist.hasTagline ? (
+                            <CheckCircle className="h-3 w-3" />
+                          ) : (
+                            <FileText className="h-3 w-3" />
+                          )}
+                          Tagline
+                        </div>
+                        <div
+                          className={cn(
+                            'flex items-center gap-1.5 px-2 py-1 rounded',
+                            item.checklist.hasDescription
+                              ? 'text-green-700 bg-green-50'
+                              : 'text-gray-400 bg-gray-50'
+                          )}
+                        >
+                          {item.checklist.hasDescription ? (
+                            <CheckCircle className="h-3 w-3" />
+                          ) : (
+                            <FileText className="h-3 w-3" />
+                          )}
+                          Description
+                        </div>
+                        <div
+                          className={cn(
+                            'flex items-center gap-1.5 px-2 py-1 rounded',
+                            item.checklist.hasWebsite
+                              ? 'text-green-700 bg-green-50'
+                              : 'text-gray-400 bg-gray-50'
+                          )}
+                        >
+                          {item.checklist.hasWebsite ? (
+                            <CheckCircle className="h-3 w-3" />
+                          ) : (
+                            <Globe className="h-3 w-3" />
+                          )}
+                          Website
+                        </div>
+                        <div
+                          className={cn(
+                            'flex items-center gap-1.5 px-2 py-1 rounded',
+                            item.checklist.hasRevenue
+                              ? 'text-green-700 bg-green-50'
+                              : 'text-gray-400 bg-gray-50'
+                          )}
+                        >
+                          {item.checklist.hasRevenue ? (
+                            <CheckCircle className="h-3 w-3" />
+                          ) : (
+                            <DollarSign className="h-3 w-3" />
+                          )}
+                          Revenue
+                        </div>
+                        <div
+                          className={cn(
+                            'flex items-center gap-1.5 px-2 py-1 rounded',
+                            item.checklist.isVerified
+                              ? 'text-green-700 bg-green-50'
+                              : 'text-gray-400 bg-gray-50'
+                          )}
+                        >
+                          {item.checklist.isVerified ? (
+                            <CheckCircle className="h-3 w-3" />
+                          ) : (
+                            <BadgeCheck className="h-3 w-3" />
+                          )}
+                          Verified
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {data.startupsChecklist.some((s) => !s.checklist.isVerified) && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground text-center">
+                        <Sparkles className="h-3 w-3 inline mr-1" />
+                        Verified listings get 20% more visibility
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Quick Links */}
             <Card>

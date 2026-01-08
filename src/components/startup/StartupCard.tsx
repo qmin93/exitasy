@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronUp, MessageSquare, Gamepad2, TrendingUp, CheckCircle, ArrowRight, Flame, DollarSign, Zap, Sparkles, Eye, HelpCircle } from 'lucide-react';
+import { ChevronUp, MessageSquare, Gamepad2, TrendingUp, CheckCircle, ArrowRight, Flame, DollarSign, Zap, Sparkles, Eye, HelpCircle, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -356,14 +356,14 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                             <ArrowRight className="h-4 w-4" />
                           </Button>
                         </Link>
-                        <Link href={`/startup/${startup.slug}#interest`}>
+                        <Link href={`/startup/${startup.slug}?tab=deal`}>
                           <Button
                             variant="outline"
                             size="default"
                             className="h-9 px-4 text-sm gap-1.5 border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 font-medium"
                           >
-                            <Sparkles className="h-4 w-4" />
-                            Interest
+                            <Users className="h-4 w-4" />
+                            Request Intro
                           </Button>
                         </Link>
                       </div>
