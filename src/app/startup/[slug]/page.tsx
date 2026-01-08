@@ -18,6 +18,7 @@ import {
   Award,
   AlertCircle,
   ArrowLeft,
+  Flame,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -28,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { GuessGame } from '@/components/guess/GuessGame';
 import { CommentSection } from '@/components/comments/CommentSection';
+import { ActionRow } from '@/components/startup/ActionRow';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
@@ -372,41 +374,26 @@ export default function StartupDetailPage() {
                       )}
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-3 mt-4">
-                      <Button
-                        variant={upvoted ? 'default' : 'outline'}
-                        className={cn(
-                          'gap-2',
-                          upvoted && 'bg-orange-500 hover:bg-orange-600'
-                        )}
-                        onClick={handleUpvote}
-                      >
-                        <ChevronUp className="h-4 w-4" />
-                        Upvote ({upvoteCount})
-                      </Button>
-                      <Button variant="outline" className="gap-2">
-                        <MessageSquare className="h-4 w-4" />
-                        Comment
-                      </Button>
-                      <Button variant="outline" className="gap-2">
-                        <Share2 className="h-4 w-4" />
-                        Share
-                      </Button>
-                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Action Row - Top */}
+            <ActionRow
+              startupName={startup.name}
+              website={startup.website}
+              upvoteCount={upvoteCount}
+              commentCount={transformedComments.length}
+              isUpvoted={upvoted}
+              onUpvote={handleUpvote}
+            />
 
             {/* Tabs */}
             <Tabs defaultValue="details">
               <TabsList className="w-full justify-start">
                 <TabsTrigger value="details">Details</TabsTrigger>
                 <TabsTrigger value="revenue">Revenue</TabsTrigger>
-                <TabsTrigger value="comments">
-                  Comments ({transformedComments.length})
-                </TabsTrigger>
                 {startup.sellabilityReasons.length > 0 && (
                   <TabsTrigger value="sellability">Why Sellable</TabsTrigger>
                 )}
@@ -611,24 +598,6 @@ export default function StartupDetailPage() {
                 )}
               </TabsContent>
 
-              <TabsContent value="comments">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">
-                      Discussion ({startup._count?.comments || transformedComments.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CommentSection
-                      comments={transformedComments}
-                      makerId={startup.makers[0]?.user?.id}
-                      startupId={startup.id}
-                      startupSlug={startup.slug}
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
               {startup.sellabilityReasons.length > 0 && (
                 <TabsContent value="sellability">
                   <Card>
@@ -649,6 +618,35 @@ export default function StartupDetailPage() {
                 </TabsContent>
               )}
             </Tabs>
+
+            {/* Discussion Section - Always Visible */}
+            <Card id="discussion-section">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-blue-500" />
+                  Discussion
+                  <Badge variant="secondary">{transformedComments.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CommentSection
+                  comments={transformedComments}
+                  makerId={startup.makers[0]?.user?.id}
+                  startupId={startup.id}
+                  startupSlug={startup.slug}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Action Row - Bottom */}
+            <ActionRow
+              startupName={startup.name}
+              website={startup.website}
+              upvoteCount={upvoteCount}
+              commentCount={transformedComments.length}
+              isUpvoted={upvoted}
+              onUpvote={handleUpvote}
+            />
           </div>
 
           {/* Sidebar */}
@@ -851,6 +849,17 @@ export default function StartupDetailPage() {
             </Card>
           </div>
         </div>
+
+        {/* Sticky Mobile Action Row */}
+        <ActionRow
+          startupName={startup.name}
+          website={startup.website}
+          upvoteCount={upvoteCount}
+          commentCount={transformedComments.length}
+          isUpvoted={upvoted}
+          onUpvote={handleUpvote}
+          variant="sticky"
+        />
       </main>
     </div>
   );
