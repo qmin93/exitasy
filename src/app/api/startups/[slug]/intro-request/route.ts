@@ -74,7 +74,7 @@ export async function POST(
         buyerType,
         operatorPlan: operatorPlan || null,
         linkedinUrl: linkedin || null,
-        status: 'PENDING',
+        status: 'NEW',
       },
     });
 
@@ -138,7 +138,7 @@ export async function POST(
       success: true,
       message: 'Intro request sent successfully',
       id: accessRequest.id,
-      status: 'PENDING',
+      status: 'NEW',
     });
   } catch (error) {
     console.error('Error creating intro request:', error);

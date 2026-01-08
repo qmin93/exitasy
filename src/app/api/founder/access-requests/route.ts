@@ -86,9 +86,10 @@ export async function GET(req: Request) {
       requests,
       total: requests.length,
       counts: {
-        pending: countMap.PENDING || 0,
-        approved: countMap.APPROVED || 0,
-        rejected: countMap.REJECTED || 0,
+        new: countMap.NEW || 0,
+        accepted: countMap.ACCEPTED || 0,
+        declined: countMap.DECLINED || 0,
+        connected: countMap.CONNECTED || 0,
       },
     });
   } catch (error) {

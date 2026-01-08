@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-// Score factor definitions - v3.0 Buyer Intent Weighted
+// Score factor definitions - v4.0 EventLog-Based Intent Signals
 const SCORE_FACTORS = [
   {
     id: 'upvotes',
@@ -52,7 +52,16 @@ const SCORE_FACTORS = [
     weight: '× 8',
     color: 'text-emerald-600',
     bgColor: 'bg-emerald-50',
-    description: 'Strong acquisition intent — the highest weighted signal.',
+    description: 'Strong acquisition intent — the highest weighted signal. Logged as INTRO_REQUEST_CREATED.',
+  },
+  {
+    id: 'intro-accepted',
+    icon: CheckCircle,
+    label: 'Intro Accepted',
+    weight: '× 12',
+    color: 'text-teal-600',
+    bgColor: 'bg-teal-50',
+    description: 'Founder accepted buyer intro — active deal signal.',
   },
   {
     id: 'verified',
@@ -79,7 +88,7 @@ const SCORE_FACTORS = [
     weight: '48h half-life',
     color: 'text-amber-500',
     bgColor: 'bg-amber-50',
-    description: 'Recent activity counts more. Older spikes fade naturally.',
+    description: 'Recent activity counts more. Older spikes fade with exponential decay.',
   },
   {
     id: 'founder',
@@ -129,11 +138,11 @@ export default function HowTrendingWorksPage() {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 rounded-full text-purple-700 text-sm font-medium mb-4">
             <Zap className="h-4 w-4" />
-            Buyer Intent Weighted v3.0
+            EventLog-Based v4.0
           </div>
           <h1 className="text-4xl font-bold mb-4">How Trending Works</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Trending highlights listings with <strong>real buyer signals</strong> — not just vanity likes.
+            Trending highlights listings with <strong>real buyer intent signals</strong> — tracked via EventLog for accuracy.
           </p>
         </div>
 
@@ -142,31 +151,32 @@ export default function HowTrendingWorksPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-purple-500" />
-              The Trending Formula v3.0
+              The Trending Formula v4.0 (EventLog-Based)
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="p-4 bg-gray-900 rounded-lg text-green-400 font-mono text-sm overflow-x-auto">
               <pre>{`TrendScore = log(1 + BaseScore) × 100 × RecencyDecay × TrustMult
 
-BaseScore = (
-  Upvotes × 1 +
-  Comments × 2 +
-  Guesses × 1.5 +
-  ExpressInterest × 4 +
-  RequestIntro × 8 +     // Highest weight - real acquisition intent
-  RecentActivityBonus +
-  FounderCommentBonus
-)
+BaseScore = Σ (EventWeight × TimeDecay)  // From EventLog table
 
-RecencyDecay = exp(-hours / 48)   // 48-hour half-life
+EventLog Types & Weights:
+  UPVOTE           × 1
+  COMMENT          × 2
+  GUESS_SUBMIT     × 1.5
+  INTEREST_EXPRESS × 4
+  INTRO_REQUEST_CREATED  × 8   // High intent signal
+  INTRO_REQUEST_ACCEPTED × 12  // Deal in progress!
+  FOUNDER_REPLY    × 3
+
+TimeDecay = exp(-hours / 48)   // Per-event decay
 TrustMult = VerifiedMult × StageMult
   // Verified: × 1.2
   // For Sale: × 1.1
   // Sold: × 0.2`}</pre>
             </div>
             <p className="text-sm text-muted-foreground mt-4 text-center">
-              All factors calculated over a <strong>7-day rolling window</strong>. Log scale prevents score explosion.
+              All events logged to <code className="bg-gray-100 px-1 rounded">EventLog</code> table with timestamps. <strong>7-day rolling window</strong>.
             </p>
           </CardContent>
         </Card>

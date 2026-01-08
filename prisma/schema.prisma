@@ -66,6 +66,15 @@ enum BuyerStatus {
   REJECTED
 }
 
+
+enum IntroRequestStatus {
+  NEW        // Buyer submitted, awaiting founder review
+  ACCEPTED   // Founder accepted, intro initiated
+  DECLINED   // Founder declined
+  CONNECTED  // Both parties connected (deal in progress)
+}
+
+
 // ============================================
 // User Model
 // ============================================
@@ -86,7 +95,7 @@ model User {
 
   // Role & Plan (Monetization)
   role          UserRole    @default(FOUNDER)
-  buyerStatus   BuyerStatus? // Only for BUYER role: PENDING → APPROVED/REJECTED
+  buyerStatus   BuyerStatus? // Only for BUYER role: PENDING ??APPROVED/REJECTED
   plan          String    @default("free")    // free, buyer, pro
 
   // Stats
@@ -295,9 +304,10 @@ model BuyerAccessRequest {
   linkedinUrl  String?  // Optional LinkedIn for verification
 
   // Status
-  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  status      IntroRequestStatus @default(NEW)
   reviewedAt  DateTime?
   reviewNote  String?  @db.Text // Founder's note when reviewing
+  connectedAt DateTime? // When both parties connected
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

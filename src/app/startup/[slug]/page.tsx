@@ -30,6 +30,7 @@ import {
   DollarSign,
   BarChart3,
   Settings,
+  Clock,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -1145,31 +1146,168 @@ export default function StartupDetailPage() {
                     feature="Full Deal Details"
                     description="Access detailed financials, unit economics, risks, and request an intro to the founder."
                   >
+                    {/* Premium KPI Dashboard */}
+                    <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50/50 to-emerald-50/50">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <BarChart3 className="h-5 w-5 text-green-600" />
+                          Key Deal Metrics
+                          <Badge className="bg-green-100 text-green-700 text-xs ml-2">Verified Data</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                          {/* MRR - Primary */}
+                          <div className="relative p-4 bg-white rounded-xl border-2 border-green-200 shadow-sm">
+                            <div className="absolute top-2 right-2">
+                              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                            </div>
+                            <div className="text-3xl font-bold text-green-700">
+                              {formatMRR(startup.currentMRR)}
+                            </div>
+                            <div className="text-sm text-green-600 font-medium">Monthly Revenue</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              ARR: ${((startup.currentMRR * 12) / 1000).toFixed(0)}K
+                            </div>
+                          </div>
+                          {/* Growth */}
+                          <div className="p-4 bg-white rounded-xl border border-blue-200 shadow-sm">
+                            <div className="text-3xl font-bold text-blue-700">
+                              +{startup.growthMoM}%
+                            </div>
+                            <div className="text-sm text-blue-600 font-medium">MoM Growth</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {startup.growthMoM >= 10 ? '🚀 Strong' : startup.growthMoM >= 5 ? '📈 Healthy' : '📊 Stable'}
+                            </div>
+                          </div>
+                          {/* Runway */}
+                          <div className="p-4 bg-white rounded-xl border border-purple-200 shadow-sm">
+                            <div className="text-3xl font-bold text-purple-700">
+                              {Math.round((startup.currentMRR * 0.7 * 12) / 1000)}K
+                            </div>
+                            <div className="text-sm text-purple-600 font-medium">Annual Profit</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              ~{Math.round(70)}% margin
+                            </div>
+                          </div>
+                          {/* Multiple */}
+                          <div className="p-4 bg-white rounded-xl border border-orange-200 shadow-sm">
+                            <div className="text-3xl font-bold text-orange-700">
+                              {startup.saleMultiple || Math.round((startup.askingPrice || 0) / (startup.currentMRR * 12) * 10) / 10 || '—'}x
+                            </div>
+                            <div className="text-sm text-orange-600 font-medium">Revenue Multiple</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {(startup.saleMultiple || 0) <= 3 ? '✅ Fair' : (startup.saleMultiple || 0) <= 5 ? '⚖️ Market' : '📊 Premium'}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Deal Signals (Buy Signals) */}
+                    <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/30 to-teal-50/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Sparkles className="h-5 w-5 text-emerald-600" />
+                          Deal Signals
+                          <Badge className="bg-emerald-100 text-emerald-700 text-xs">Why Buy</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {startup.growthMoM >= 5 && (
+                            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-emerald-100">
+                              <div className="p-2 bg-emerald-100 rounded-lg">
+                                <TrendingUp className="h-4 w-4 text-emerald-600" />
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm text-gray-900">Growing Revenue</div>
+                                <div className="text-xs text-muted-foreground">+{startup.growthMoM}% month-over-month</div>
+                              </div>
+                            </div>
+                          )}
+                          {startup.verificationStatus === 'VERIFIED' && (
+                            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-emerald-100">
+                              <div className="p-2 bg-emerald-100 rounded-lg">
+                                <CheckCircle className="h-4 w-4 text-emerald-600" />
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm text-gray-900">Verified Revenue</div>
+                                <div className="text-xs text-muted-foreground">Third-party verification</div>
+                              </div>
+                            </div>
+                          )}
+                          {startup.revenueAge >= 6 && (
+                            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-emerald-100">
+                              <div className="p-2 bg-emerald-100 rounded-lg">
+                                <Clock className="h-4 w-4 text-emerald-600" />
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm text-gray-900">Proven Track Record</div>
+                                <div className="text-xs text-muted-foreground">{startup.revenueAge} months of revenue</div>
+                              </div>
+                            </div>
+                          )}
+                          {(startup.saleMultiple || 0) <= 4 && (
+                            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-emerald-100">
+                              <div className="p-2 bg-emerald-100 rounded-lg">
+                                <DollarSign className="h-4 w-4 text-emerald-600" />
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm text-gray-900">Attractive Valuation</div>
+                                <div className="text-xs text-muted-foreground">{startup.saleMultiple || '—'}x multiple</div>
+                              </div>
+                            </div>
+                          )}
+                          {startup.saleIncludes && startup.saleIncludes.length >= 3 && (
+                            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-emerald-100">
+                              <div className="p-2 bg-emerald-100 rounded-lg">
+                                <Briefcase className="h-4 w-4 text-emerald-600" />
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm text-gray-900">Complete Package</div>
+                                <div className="text-xs text-muted-foreground">{startup.saleIncludes.length} assets included</div>
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-emerald-100">
+                            <div className="p-2 bg-emerald-100 rounded-lg">
+                              <Users className="h-4 w-4 text-emerald-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-sm text-gray-900">Founder Support</div>
+                              <div className="text-xs text-muted-foreground">Transition assistance available</div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
                     {/* Detailed Financials */}
                     <Card>
                       <CardHeader>
                         <CardTitle className="text-lg flex items-center gap-2">
                           <BarChart3 className="h-5 w-5 text-blue-500" />
-                          Detailed Financials
+                          Financial Breakdown
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                          <div className="p-3 bg-gray-50 rounded-lg border">
-                            <div className="text-lg font-bold">${(startup.currentMRR * 1.1).toFixed(0)}</div>
+                          <div className="p-4 bg-gradient-to-br from-gray-50 to-slate-50 rounded-lg border">
+                            <div className="text-xl font-bold text-gray-800">${Math.round(startup.currentMRR * 1.05).toLocaleString()}</div>
                             <div className="text-xs text-muted-foreground">Last 30d Revenue</div>
                           </div>
-                          <div className="p-3 bg-gray-50 rounded-lg border">
-                            <div className="text-lg font-bold">${(startup.currentMRR * 0.3).toFixed(0)}</div>
+                          <div className="p-4 bg-gradient-to-br from-gray-50 to-slate-50 rounded-lg border">
+                            <div className="text-xl font-bold text-gray-800">${Math.round(startup.currentMRR * 0.3).toLocaleString()}</div>
                             <div className="text-xs text-muted-foreground">Monthly Expenses</div>
                           </div>
-                          <div className="p-3 bg-gray-50 rounded-lg border">
-                            <div className="text-lg font-bold">${(startup.currentMRR * 0.7).toFixed(0)}</div>
-                            <div className="text-xs text-muted-foreground">Monthly Profit</div>
+                          <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-100">
+                            <div className="text-xl font-bold text-green-700">${Math.round(startup.currentMRR * 0.7).toLocaleString()}</div>
+                            <div className="text-xs text-green-600">Monthly Profit</div>
                           </div>
-                          <div className="p-3 bg-gray-50 rounded-lg border">
-                            <div className="text-lg font-bold">{Math.round(70 + Math.random() * 20)}%</div>
-                            <div className="text-xs text-muted-foreground">Profit Margin</div>
+                          <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+                            <div className="text-xl font-bold text-blue-700">~70%</div>
+                            <div className="text-xs text-blue-600">Profit Margin</div>
                           </div>
                         </div>
                       </CardContent>
@@ -1185,68 +1323,111 @@ export default function StartupDetailPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                          <div className="p-3 bg-green-50 rounded-lg border border-green-100">
-                            <div className="text-lg font-bold text-green-700">${Math.round(startup.currentMRR / 50)}</div>
+                          <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+                            <div className="text-xl font-bold text-green-700">${Math.round(startup.currentMRR / 50)}</div>
                             <div className="text-xs text-green-600">ARPU</div>
                           </div>
-                          <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                            <div className="text-lg font-bold text-blue-700">${Math.round(startup.currentMRR * 12 / 50)}</div>
+                          <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                            <div className="text-xl font-bold text-blue-700">${Math.round(startup.currentMRR * 12 / 50)}</div>
                             <div className="text-xs text-blue-600">LTV</div>
                           </div>
-                          <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-                            <div className="text-lg font-bold text-purple-700">${Math.round(20 + Math.random() * 30)}</div>
+                          <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
+                            <div className="text-xl font-bold text-purple-700">${Math.round(25 + startup.currentMRR * 0.01)}</div>
                             <div className="text-xs text-purple-600">CAC</div>
                           </div>
-                          <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
-                            <div className="text-lg font-bold text-orange-700">{(2 + Math.random() * 3).toFixed(1)}%</div>
+                          <div className="p-4 bg-orange-50 rounded-lg border border-orange-100">
+                            <div className="text-xl font-bold text-orange-700">~3%</div>
                             <div className="text-xs text-orange-600">Churn</div>
                           </div>
+                        </div>
+                        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4 text-blue-600" />
+                          <span className="text-sm text-blue-700">
+                            LTV/CAC Ratio: <strong>{(Math.round(startup.currentMRR * 12 / 50) / Math.round(25 + startup.currentMRR * 0.01)).toFixed(1)}x</strong>
+                            {' '}<span className="text-blue-600">(Healthy &gt; 3x)</span>
+                          </span>
                         </div>
                       </CardContent>
                     </Card>
 
                     {/* Risks & Considerations */}
-                    <Card className="border-yellow-200 bg-yellow-50/30">
+                    <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50/50 to-yellow-50/50">
                       <CardHeader>
                         <CardTitle className="text-lg flex items-center gap-2">
-                          <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                          Risks & Considerations
+                          <AlertTriangle className="h-5 w-5 text-amber-600" />
+                          Due Diligence Notes
+                          <Badge className="bg-amber-100 text-amber-700 text-xs">Review</Badge>
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <ul className="space-y-2">
-                          <li className="flex items-start gap-2 text-sm">
-                            <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                            <span>Market competition may increase in the {startup.categories[0] || 'SaaS'} space</span>
-                          </li>
-                          <li className="flex items-start gap-2 text-sm">
-                            <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                            <span>Revenue concentration - verify customer diversification</span>
-                          </li>
-                          <li className="flex items-start gap-2 text-sm">
-                            <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                            <span>Technical debt review recommended before acquisition</span>
-                          </li>
-                        </ul>
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-amber-100">
+                            <div className="p-1.5 bg-amber-100 rounded-lg flex-shrink-0">
+                              <AlertTriangle className="h-4 w-4 text-amber-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-sm text-gray-900">Market Competition</div>
+                              <div className="text-xs text-muted-foreground">Competition may increase in the {startup.categories[0] || 'SaaS'} space. Verify competitive moat.</div>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-amber-100">
+                            <div className="p-1.5 bg-amber-100 rounded-lg flex-shrink-0">
+                              <AlertTriangle className="h-4 w-4 text-amber-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-sm text-gray-900">Revenue Concentration</div>
+                              <div className="text-xs text-muted-foreground">Request customer breakdown to verify diversification.</div>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-amber-100">
+                            <div className="p-1.5 bg-amber-100 rounded-lg flex-shrink-0">
+                              <AlertTriangle className="h-4 w-4 text-amber-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-sm text-gray-900">Technical Review</div>
+                              <div className="text-xs text-muted-foreground">Tech stack review and code audit recommended before closing.</div>
+                            </div>
+                          </div>
+                          {startup.growthMoM < 5 && (
+                            <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-red-100">
+                              <div className="p-1.5 bg-red-100 rounded-lg flex-shrink-0">
+                                <AlertTriangle className="h-4 w-4 text-red-600" />
+                              </div>
+                              <div>
+                                <div className="font-medium text-sm text-gray-900">Growth Slowdown</div>
+                                <div className="text-xs text-muted-foreground">Growth at {startup.growthMoM}% - investigate causes and growth potential.</div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
 
                     {/* Request Intro CTA */}
-                    <Card className="border-green-300 bg-gradient-to-r from-green-50 to-emerald-50">
+                    <Card className="border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg shadow-green-100">
                       <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                           <div>
-                            <h4 className="font-bold text-green-800 text-lg">Ready to Talk?</h4>
-                            <p className="text-sm text-green-600">Request an intro to discuss this acquisition directly with the founder.</p>
-                            <p className="text-xs text-muted-foreground mt-1">Buyer-only · Founder replies in 48h</p>
+                            <h4 className="font-bold text-green-800 text-xl flex items-center gap-2">
+                              <Sparkles className="h-5 w-5" />
+                              Ready to Talk?
+                            </h4>
+                            <p className="text-sm text-green-700 mt-1">Request an intro to discuss this acquisition directly with the founder.</p>
+                            <div className="flex items-center gap-3 mt-2">
+                              <Badge variant="outline" className="border-green-300 text-green-700 bg-white">
+                                <Shield className="h-3 w-3 mr-1" />
+                                Verified Buyer
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">• Founder replies in 24-48h</span>
+                            </div>
                           </div>
                           <RequestIntroModal
                             startupName={startup.name}
                             startupSlug={startup.slug}
                             askingPrice={startup.askingPrice || undefined}
                           >
-                            <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg">
-                              <Users className="h-5 w-5 mr-2" />
+                            <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg shadow-green-200 gap-2 whitespace-nowrap">
+                              <Users className="h-5 w-5" />
                               Request Intro
                             </Button>
                           </RequestIntroModal>

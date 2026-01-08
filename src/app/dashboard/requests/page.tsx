@@ -94,9 +94,9 @@ const BUYER_TYPE_LABELS: Record<string, string> = {
 export default function RequestsManagementPage() {
   const { data: session, status } = useSession();
   const [requests, setRequests] = useState<AccessRequest[]>([]);
-  const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0 });
+  const [counts, setCounts] = useState({ new: 0, accepted: 0, declined: 0, connected: 0 });
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState('new');
   const [selectedRequest, setSelectedRequest] = useState<AccessRequest | null>(null);
   const [reviewNote, setReviewNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -225,22 +225,22 @@ export default function RequestsManagementPage() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6">
-            <TabsTrigger value="pending" className="gap-2">
+            <TabsTrigger value="new" className="gap-2">
               <Clock className="h-4 w-4" />
               Pending
-              {counts.pending > 0 && (
-                <Badge className="bg-yellow-500 text-white ml-1">{counts.pending}</Badge>
+              {counts.new > 0 && (
+                <Badge className="bg-yellow-500 text-white ml-1">{counts.new}</Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="approved" className="gap-2">
+            <TabsTrigger value="accepted" className="gap-2">
               <CheckCircle className="h-4 w-4" />
               Approved
-              <Badge variant="outline" className="ml-1">{counts.approved}</Badge>
+              <Badge variant="outline" className="ml-1">{counts.accepted}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="rejected" className="gap-2">
+            <TabsTrigger value="declined" className="gap-2">
               <XCircle className="h-4 w-4" />
               Rejected
-              <Badge variant="outline" className="ml-1">{counts.rejected}</Badge>
+              <Badge variant="outline" className="ml-1">{counts.declined}</Badge>
             </TabsTrigger>
           </TabsList>
 
@@ -250,7 +250,7 @@ export default function RequestsManagementPage() {
               {filteredRequests.map((request) => (
                 <Card key={request.id} className={cn(
                   'hover:shadow-md transition-shadow',
-                  request.status === 'PENDING' && 'border-yellow-200 bg-yellow-50/30'
+                  request.status === 'NEW' && 'border-yellow-200 bg-yellow-50/30'
                 )}>
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
@@ -272,14 +272,14 @@ export default function RequestsManagementPage() {
                             variant="outline"
                             className={cn(
                               'text-xs',
-                              request.status === 'PENDING' && 'bg-yellow-100 text-yellow-700 border-yellow-300',
-                              request.status === 'APPROVED' && 'bg-green-100 text-green-700 border-green-300',
-                              request.status === 'REJECTED' && 'bg-red-100 text-red-700 border-red-300'
+                              request.status === 'NEW' && 'bg-yellow-100 text-yellow-700 border-yellow-300',
+                              request.status === 'ACCEPTED' && 'bg-green-100 text-green-700 border-green-300',
+                              request.status === 'DECLINED' && 'bg-red-100 text-red-700 border-red-300'
                             )}
                           >
-                            {request.status === 'PENDING' && <Clock className="h-3 w-3 mr-1" />}
-                            {request.status === 'APPROVED' && <CheckCircle className="h-3 w-3 mr-1" />}
-                            {request.status === 'REJECTED' && <XCircle className="h-3 w-3 mr-1" />}
+                            {request.status === 'NEW' && <Clock className="h-3 w-3 mr-1" />}
+                            {request.status === 'ACCEPTED' && <CheckCircle className="h-3 w-3 mr-1" />}
+                            {request.status === 'DECLINED' && <XCircle className="h-3 w-3 mr-1" />}
                             {request.status}
                           </Badge>
                           <span className="text-xs text-muted-foreground">→</span>
@@ -340,7 +340,7 @@ export default function RequestsManagementPage() {
                       </div>
 
                       {/* Actions */}
-                      {request.status === 'PENDING' && (
+                      {request.status === 'NEW' && (
                         <Button
                           onClick={() => setSelectedRequest(request)}
                           className="bg-green-500 hover:bg-green-600"
@@ -359,7 +359,7 @@ export default function RequestsManagementPage() {
                 <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-30" />
                 <h3 className="text-lg font-medium mb-2">No {activeTab} requests</h3>
                 <p className="text-muted-foreground text-sm">
-                  {activeTab === 'pending' && 'New intro requests will appear here.'}
+                  {activeTab === 'new' && 'New intro requests will appear here.'}
                   {activeTab === 'approved' && 'Approved requests will appear here.'}
                   {activeTab === 'rejected' && 'Rejected requests will appear here.'}
                 </p>

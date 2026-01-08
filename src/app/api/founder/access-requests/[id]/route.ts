@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { IntroRequestStatus } from '@prisma/client';
 
 // GET /api/founder/access-requests/[id] - Get specific request details
 export async function GET(
@@ -134,7 +135,7 @@ export async function PATCH(
     }
 
     // Update the request
-    const newStatus = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+    const newStatus = action === 'APPROVE' ? IntroRequestStatus.ACCEPTED : IntroRequestStatus.DECLINED;
 
     const updatedRequest = await prisma.buyerAccessRequest.update({
       where: { id },
