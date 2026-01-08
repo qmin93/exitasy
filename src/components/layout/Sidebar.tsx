@@ -6,7 +6,6 @@ import { TrendingUp, Target, CheckCircle, DollarSign, MessageSquare } from 'luci
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDistanceToNow } from 'date-fns';
@@ -125,64 +124,63 @@ export function Sidebar() {
     fetchSidebarData();
   }, []);
 
+  // Determine which section should be highlighted based on data
+  const hasHotDeals = forSaleStartups.length > 0;
+  const hasActiveTrending = trendingStartups.length >= 3;
+
   return (
-    <aside className="w-80 space-y-6">
-      {/* Trending This Week */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <TrendingUp className="h-4 w-4 text-orange-500" />
-            Trending This Week
+    <aside className="w-80 space-y-4">
+      {/* Trending This Week - Compact with visual emphasis */}
+      <Card className={hasActiveTrending ? 'border-purple-200 bg-purple-50/30' : ''}>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center justify-between text-base">
+            <div className="flex items-center gap-2">
+              <div className={`p-1.5 rounded-lg ${hasActiveTrending ? 'bg-purple-100' : 'bg-muted'}`}>
+                <TrendingUp className={`h-4 w-4 ${hasActiveTrending ? 'text-purple-600' : 'text-orange-500'}`} />
+              </div>
+              <span>Trending</span>
+            </div>
+            {hasActiveTrending && (
+              <Badge className="bg-purple-100 text-purple-700 text-[10px]">HOT</Badge>
+            )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2 pt-0">
           {isLoading ? (
             <SidebarSkeleton />
           ) : trendingStartups.length > 0 ? (
             <>
-              {trendingStartups.map((startup, index) => (
+              {trendingStartups.slice(0, 5).map((startup, index) => (
                 <Link
                   key={startup.id}
                   href={`/startup/${startup.slug}`}
-                  className="block hover:bg-muted/50 -mx-2 px-2 py-2 rounded-md transition-colors"
+                  className="flex items-center justify-between hover:bg-muted/50 -mx-2 px-2 py-1.5 rounded-md transition-colors group"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-orange-500 w-5">
-                        #{index + 1}
-                      </span>
-                      <span className="font-medium text-sm">{startup.name}</span>
-                    </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="secondary" className="text-xs cursor-help">
-                            {startup.trendScore ? Math.round(startup.trendScore) : startup.upvoteCount} pts
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent side="left" className="max-w-[200px]">
-                          <p className="text-xs">Based on upvotes, comments, and guesses in the last 7 days</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-bold w-4 ${
+                      index === 0 ? 'text-yellow-500' :
+                      index === 1 ? 'text-gray-400' :
+                      index === 2 ? 'text-amber-600' :
+                      'text-muted-foreground'
+                    }`}>
+                      {index + 1}
+                    </span>
+                    <span className="font-medium text-sm truncate max-w-[140px]">{startup.name}</span>
                   </div>
-                  {/* Activity breakdown - always visible */}
-                  <div className="flex items-center gap-3 mt-1 ml-7 text-[11px] text-muted-foreground">
-                    {startup.trendDetails ? (
-                      <>
-                        <span>↑{startup.trendDetails.upvotes7d}</span>
-                        <span>💬{startup.trendDetails.comments7d}</span>
-                        <span>🎯{startup.trendDetails.guesses7d}</span>
-                      </>
-                    ) : (
-                      <span>↑{startup.upvoteCount} upvotes</span>
-                    )}
-                  </div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="secondary" className="text-[10px] cursor-help">
+                          {startup.trendScore ? Math.round(startup.trendScore) : startup.upvoteCount}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="max-w-[200px]">
+                        <p className="text-xs">Score based on upvotes × 2 + comments × 3 + guesses</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </Link>
               ))}
-              <p className="text-[10px] text-muted-foreground mt-2 text-center italic">
-                Ranked by activity in the last 7 days
-              </p>
             </>
           ) : (
             <p className="text-sm text-muted-foreground">No startups yet</p>
@@ -190,15 +188,17 @@ export function Sidebar() {
         </CardContent>
       </Card>
 
-      {/* Top Guessers */}
+      {/* Top Guessers - Compact */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Target className="h-4 w-4 text-purple-500" />
-            Top Guessers
+            <div className="p-1.5 rounded-lg bg-muted">
+              <Target className="h-4 w-4 text-purple-500" />
+            </div>
+            <span>Top Guessers</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2 pt-0">
           {isLoading ? (
             <SidebarSkeleton />
           ) : topGuessers.length > 0 ? (
@@ -210,29 +210,29 @@ export function Sidebar() {
                   className="flex items-center justify-between hover:bg-muted/50 -mx-2 px-2 py-1 rounded-md transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">
+                    <span className="text-xs w-4">
                       {guesser.rank === 1 && '🥇'}
                       {guesser.rank === 2 && '🥈'}
                       {guesser.rank === 3 && '🥉'}
                     </span>
-                    <Avatar className="h-6 w-6">
+                    <Avatar className="h-5 w-5">
                       <AvatarImage src={guesser.image || undefined} />
-                      <AvatarFallback>
+                      <AvatarFallback className="text-[10px]">
                         {(guesser.username || 'U').slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="font-medium text-sm">@{guesser.username}</span>
+                    <span className="font-medium text-sm truncate max-w-[100px]">@{guesser.username}</span>
                   </div>
-                  <span className="text-sm text-green-600 font-medium">
+                  <Badge variant="outline" className="text-[10px] text-green-600 border-green-200">
                     {guesser.accuracy?.toFixed(0)}%
-                  </span>
+                  </Badge>
                 </Link>
               ))}
               <Link
                 href="/leaderboard"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors block mt-2"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors block mt-1 text-center"
               >
-                See all →
+                See leaderboard →
               </Link>
             </>
           ) : (
@@ -241,15 +241,22 @@ export function Sidebar() {
         </CardContent>
       </Card>
 
-      {/* Hot Deals This Week */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <DollarSign className="h-4 w-4 text-green-500" />
-            Hot Deals This Week
+      {/* Hot Deals This Week - Highlighted when deals exist */}
+      <Card className={hasHotDeals ? 'border-green-200 bg-green-50/30' : ''}>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center justify-between text-base">
+            <div className="flex items-center gap-2">
+              <div className={`p-1.5 rounded-lg ${hasHotDeals ? 'bg-green-100' : 'bg-muted'}`}>
+                <DollarSign className={`h-4 w-4 ${hasHotDeals ? 'text-green-600' : 'text-green-500'}`} />
+              </div>
+              <span>Hot Deals</span>
+            </div>
+            {hasHotDeals && (
+              <Badge className="bg-green-100 text-green-700 text-[10px]">{forSaleStartups.length} LIVE</Badge>
+            )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2 pt-0">
           {isLoading ? (
             <SidebarSkeleton />
           ) : forSaleStartups.length > 0 ? (
@@ -258,14 +265,14 @@ export function Sidebar() {
                 <Link
                   key={startup.id}
                   href={`/startup/${startup.slug}`}
-                  className="flex items-center justify-between hover:bg-muted/50 -mx-2 px-2 py-1 rounded-md transition-colors"
+                  className="flex items-center justify-between hover:bg-green-100/50 -mx-2 px-2 py-1.5 rounded-md transition-colors"
                 >
-                  <span className="font-medium text-sm">{startup.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
+                  <span className="font-medium text-sm truncate max-w-[140px]">{startup.name}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-green-700">
                       ${((startup.askingPrice || 0) / 1000).toFixed(0)}K
                     </span>
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-[10px] border-green-200 text-green-600">
                       {startup.saleMultiple || 0}x
                     </Badge>
                   </div>
@@ -273,9 +280,9 @@ export function Sidebar() {
               ))}
               <Link
                 href="/for-sale"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors block mt-2"
+                className="text-xs text-green-600 hover:text-green-700 transition-colors block mt-1 text-center"
               >
-                Browse all →
+                View all deals →
               </Link>
             </>
           ) : (
@@ -284,50 +291,58 @@ export function Sidebar() {
         </CardContent>
       </Card>
 
-      <Separator />
-
-      {/* Active Discussions */}
+      {/* Active Discussions - Compact */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
-            <MessageSquare className="h-4 w-4 text-blue-500" />
-            Active Discussions
+            <div className="p-1.5 rounded-lg bg-muted">
+              <MessageSquare className="h-4 w-4 text-blue-500" />
+            </div>
+            <span>Discussions</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2 pt-0">
           {isLoading ? (
             <SidebarSkeleton />
           ) : forumThreads.length > 0 ? (
-            forumThreads.map((thread) => (
+            <>
+              {forumThreads.map((thread) => (
+                <Link
+                  key={thread.id}
+                  href={`/forum/${thread.id}`}
+                  className="block hover:bg-muted/50 -mx-2 px-2 py-1.5 rounded-md transition-colors"
+                >
+                  <p className="text-sm font-medium line-clamp-1">{thread.title}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {thread.replyCount} replies ·{' '}
+                    {formatDistanceToNow(new Date(thread.createdAt), { addSuffix: true })}
+                  </p>
+                </Link>
+              ))}
               <Link
-                key={thread.id}
-                href={`/forum/${thread.id}`}
-                className="block hover:bg-muted/50 -mx-2 px-2 py-2 rounded-md transition-colors"
+                href="/forum"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors block mt-1 text-center"
               >
-                <p className="text-sm font-medium line-clamp-1">{thread.title}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {thread.replyCount} replies ·{' '}
-                  {formatDistanceToNow(new Date(thread.createdAt), { addSuffix: true })}
-                </p>
+                Join discussions →
               </Link>
-            ))
+            </>
           ) : (
             <p className="text-sm text-muted-foreground">No discussions yet</p>
           )}
         </CardContent>
       </Card>
 
-      <Separator />
-
-      {/* Recently Verified */}
+      {/* Recently Verified - Compact */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            Recently Verified
+            <div className="p-1.5 rounded-lg bg-muted">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            </div>
+            <span>Verified</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2 pt-0">
           {isLoading ? (
             <SidebarSkeleton />
           ) : recentlyVerified.length > 0 ? (
@@ -337,8 +352,8 @@ export function Sidebar() {
                 href={`/startup/${startup.slug}`}
                 className="flex items-center justify-between hover:bg-muted/50 -mx-2 px-2 py-1 rounded-md transition-colors"
               >
-                <span className="font-medium text-sm">{startup.name}</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="font-medium text-sm truncate max-w-[140px]">{startup.name}</span>
+                <span className="text-[10px] text-muted-foreground">
                   {formatDistanceToNow(new Date(startup.updatedAt), {
                     addSuffix: true,
                   })}

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronUp, MessageSquare, Gamepad2, TrendingUp, CheckCircle } from 'lucide-react';
+import { ChevronUp, MessageSquare, Gamepad2, TrendingUp, CheckCircle, ArrowRight, Flame, DollarSign } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -72,6 +72,7 @@ interface APIStartup {
 interface StartupCardProps {
   startup: APIStartup;
   showRank?: boolean;
+  variant?: 'default' | 'trending' | 'sale';
 }
 
 function formatMRR(mrr: number): string {
@@ -81,7 +82,7 @@ function formatMRR(mrr: number): string {
   return `$${mrr}`;
 }
 
-export function StartupCard({ startup, showRank = false }: StartupCardProps) {
+export function StartupCard({ startup, showRank = false, variant = 'default' }: StartupCardProps) {
   const [upvoted, setUpvoted] = useState(false);
   const [upvoteCount, setUpvoteCount] = useState(startup.upvoteCount || 0);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -90,6 +91,9 @@ export function StartupCard({ startup, showRank = false }: StartupCardProps) {
   const stageLower = (startup.stage?.toLowerCase() || 'making_money') as StartupStage;
   const stageConfig = STAGE_CONFIG[stageLower] || STAGE_CONFIG.making_money;
   const isForSale = stageLower === 'for_sale' || stageLower === 'exit_ready';
+
+  // Auto-detect variant based on state
+  const effectiveVariant = variant !== 'default' ? variant : isForSale ? 'sale' : showRank ? 'default' : 'trending';
 
   const handleUpvote = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -107,10 +111,55 @@ export function StartupCard({ startup, showRank = false }: StartupCardProps) {
     setUpvoted(!upvoted);
   };
 
+  // Get variant-specific styles
+  const getCardStyles = () => {
+    switch (effectiveVariant) {
+      case 'sale':
+        return 'hover:border-green-300 hover:shadow-green-100/50';
+      case 'trending':
+        return 'hover:border-purple-300 hover:shadow-purple-100/50';
+      default:
+        return 'hover:border-orange-200';
+    }
+  };
+
+  const getUpvoteStyles = () => {
+    if (upvoted) {
+      switch (effectiveVariant) {
+        case 'sale':
+          return 'bg-green-500 text-white border-green-500';
+        case 'trending':
+          return 'bg-purple-500 text-white border-purple-500';
+        default:
+          return 'bg-orange-500 text-white border-orange-500';
+      }
+    }
+    switch (effectiveVariant) {
+      case 'sale':
+        return 'bg-green-50 hover:bg-green-100 text-gray-600 hover:text-green-600 border-green-100';
+      case 'trending':
+        return 'bg-purple-50 hover:bg-purple-100 text-gray-600 hover:text-purple-600 border-purple-100';
+      default:
+        return 'bg-gray-50 hover:bg-orange-50 text-gray-600 hover:text-orange-600 border-gray-100';
+    }
+  };
+
+  const getCtaColor = () => {
+    switch (effectiveVariant) {
+      case 'sale':
+        return 'text-green-600 group-hover:text-green-700';
+      case 'trending':
+        return 'text-purple-600 group-hover:text-purple-700';
+      default:
+        return 'text-orange-600 group-hover:text-orange-700';
+    }
+  };
+
   return (
     <Card className={cn(
-      "hover:shadow-lg hover:border-orange-200 transition-all duration-200 group overflow-hidden",
-      isAnimating && "scale-[1.02] shadow-lg border-orange-300"
+      "hover:shadow-lg transition-all duration-200 group overflow-hidden",
+      getCardStyles(),
+      isAnimating && "scale-[1.02] shadow-lg"
     )}>
       <CardContent className="p-0">
         <div className="flex">
@@ -119,9 +168,7 @@ export function StartupCard({ startup, showRank = false }: StartupCardProps) {
             onClick={handleUpvote}
             className={cn(
               'flex flex-col items-center justify-center px-4 py-6 border-r transition-all duration-200 min-w-[72px]',
-              upvoted
-                ? 'bg-orange-500 text-white border-orange-500'
-                : 'bg-gray-50 hover:bg-orange-50 text-gray-600 hover:text-orange-600 border-gray-100',
+              getUpvoteStyles(),
               isAnimating && 'scale-110'
             )}
           >
@@ -285,6 +332,31 @@ export function StartupCard({ startup, showRank = false }: StartupCardProps) {
                       </Button>
                     </Link>
                   )}
+                  {/* View Details CTA - pushes to the right */}
+                  <Link href={`/startup/${startup.slug}`} className="ml-auto">
+                    <span className={cn(
+                      'text-xs flex items-center gap-1 transition-colors',
+                      getCtaColor()
+                    )}>
+                      {isForSale ? (
+                        <>
+                          <DollarSign className="h-3 w-3" />
+                          View deal
+                        </>
+                      ) : showRank ? (
+                        <>
+                          <Flame className="h-3 w-3" />
+                          View launch
+                        </>
+                      ) : (
+                        <>
+                          <TrendingUp className="h-3 w-3" />
+                          View details
+                        </>
+                      )}
+                      <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                  </Link>
                 </div>
               </div>
             </div>

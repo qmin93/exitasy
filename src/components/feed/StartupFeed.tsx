@@ -286,43 +286,72 @@ export function StartupFeed() {
           {/* Fallback: This Week's Trending (only when Today is empty) */}
           {showFallback && fallbackStartups.length > 0 && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="flex items-center gap-2 font-semibold text-lg">
-                  <TrendingUp className="h-5 w-5 text-green-500" />
-                  Trending This Week
-                  <span className="text-xs font-normal text-muted-foreground bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                    While you wait
-                  </span>
-                </h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setTimePeriod('week')}
-                  className="text-green-600 hover:text-green-700 gap-1"
-                >
-                  View all
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+              {/* Prominent Trending Header */}
+              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <TrendingUp className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-lg flex items-center gap-2">
+                        Trending This Week
+                        <Badge className="bg-purple-100 text-purple-700 text-xs">
+                          While you wait
+                        </Badge>
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Top products gaining traction right now
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTimePeriod('week')}
+                    className="text-purple-600 hover:text-purple-700 border-purple-200 hover:bg-purple-50 gap-1"
+                  >
+                    View all
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
+              {/* Trending Cards with Rank Numbers */}
               <div className="space-y-3">
-                {fallbackStartups.slice(0, 3).map((startup, index) => (
-                  <StartupCard
-                    key={startup.id}
-                    startup={{...startup, todayRank: index + 1}}
-                    showRank={false}
-                  />
+                {fallbackStartups.slice(0, 5).map((startup, index) => (
+                  <div key={startup.id} className="relative">
+                    {/* Rank Badge */}
+                    <div className="absolute -left-3 top-1/2 -translate-y-1/2 z-10">
+                      <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-md",
+                        index === 0 ? "bg-yellow-400 text-yellow-900" :
+                        index === 1 ? "bg-gray-300 text-gray-700" :
+                        index === 2 ? "bg-amber-600 text-amber-100" :
+                        "bg-purple-100 text-purple-700"
+                      )}>
+                        #{index + 1}
+                      </div>
+                    </div>
+                    <div className="ml-6">
+                      <StartupCard
+                        startup={{...startup}}
+                        showRank={false}
+                        variant="trending"
+                      />
+                    </div>
+                  </div>
                 ))}
               </div>
 
-              {fallbackStartups.length > 3 && (
+              {fallbackStartups.length > 5 && (
                 <div className="text-center pt-2">
                   <Button
                     variant="outline"
                     onClick={() => setTimePeriod('week')}
-                    className="gap-2"
+                    className="gap-2 border-purple-200 text-purple-700 hover:bg-purple-50"
                   >
-                    See {fallbackStartups.length - 3} more from this week
+                    See {fallbackStartups.length - 5} more trending this week
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
