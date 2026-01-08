@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
   turbopack: {
     resolveExtensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
   },
+  // Skip ESLint during production builds (run separately in CI)
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;
