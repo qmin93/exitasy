@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Rocket, Calendar, TrendingUp, Sparkles } from 'lucide-react';
+import { Rocket, Calendar, TrendingUp, Sparkles, Flame, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -11,13 +11,23 @@ import { FeedFilter } from '@/types';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-// Filter chips
+// Time period tabs - Product Hunt style
+type TimePeriod = 'today' | 'yesterday' | 'week' | 'month';
+
+const TIME_TABS: { value: TimePeriod; label: string; icon: React.ReactNode }[] = [
+  { value: 'today', label: 'Today', icon: <Flame className="h-4 w-4" /> },
+  { value: 'yesterday', label: 'Yesterday', icon: <Clock className="h-4 w-4" /> },
+  { value: 'week', label: 'This Week', icon: <TrendingUp className="h-4 w-4" /> },
+  { value: 'month', label: 'This Month', icon: <Calendar className="h-4 w-4" /> },
+];
+
+// Stage filter chips
 const STAGE_FILTERS: { value: FeedFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
+  { value: 'all', label: 'All Stages' },
   { value: 'making_money', label: '🟢 Making Money' },
   { value: 'exit_ready', label: '🟡 Exit-Ready' },
   { value: 'for_sale', label: '🔵 For Sale' },
-  { value: 'sold', label: '🟣 Recently Sold' },
+  { value: 'sold', label: '🟣 Sold' },
 ];
 
 interface FeedSectionProps {
@@ -69,6 +79,7 @@ function FeedSection({
 }
 
 export function StartupFeed() {
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('today');
   const [activeFilter, setActiveFilter] = useState<FeedFilter>('all');
   const [startups, setStartups] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -89,6 +100,7 @@ export function StartupFeed() {
           };
           params.set('stage', stageMap[activeFilter] || activeFilter);
         }
+        params.set('period', timePeriod);
         params.set('limit', '20');
 
         const res = await fetch(`/api/startups?${params.toString()}`);
@@ -104,61 +116,64 @@ export function StartupFeed() {
     }
 
     fetchStartups();
-  }, [activeFilter]);
+  }, [activeFilter, timePeriod]);
 
-  // Filter startups (already filtered by API, but keep for client-side filtering)
-  const filteredStartups = startups;
+  // Get section title based on time period
+  const getSectionTitle = () => {
+    switch (timePeriod) {
+      case 'today':
+        return "Today's Top Products";
+      case 'yesterday':
+        return "Yesterday's Top Products";
+      case 'week':
+        return "This Week's Top Products";
+      case 'month':
+        return "This Month's Top Products";
+    }
+  };
 
-  // Group by date (simplified: today, yesterday, earlier)
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const lastWeek = new Date(today);
-  lastWeek.setDate(lastWeek.getDate() - 7);
-
-  const todayStartups = filteredStartups.filter((s) => {
-    const launchDate = new Date(s.launchDate);
-    launchDate.setHours(0, 0, 0, 0);
-    return launchDate.getTime() >= today.getTime();
-  });
-
-  const yesterdayStartups = filteredStartups.filter((s) => {
-    const launchDate = new Date(s.launchDate);
-    launchDate.setHours(0, 0, 0, 0);
-    return (
-      launchDate.getTime() >= yesterday.getTime() &&
-      launchDate.getTime() < today.getTime()
-    );
-  });
-
-  const lastWeekStartups = filteredStartups.filter((s) => {
-    const launchDate = new Date(s.launchDate);
-    launchDate.setHours(0, 0, 0, 0);
-    return (
-      launchDate.getTime() >= lastWeek.getTime() &&
-      launchDate.getTime() < yesterday.getTime()
-    );
-  });
-
-  const olderStartups = filteredStartups.filter((s) => {
-    const launchDate = new Date(s.launchDate);
-    launchDate.setHours(0, 0, 0, 0);
-    return launchDate.getTime() < lastWeek.getTime();
-  });
+  const getSectionIcon = () => {
+    switch (timePeriod) {
+      case 'today':
+        return <Flame className="h-5 w-5 text-orange-500" />;
+      case 'yesterday':
+        return <Clock className="h-5 w-5 text-blue-500" />;
+      case 'week':
+        return <TrendingUp className="h-5 w-5 text-green-500" />;
+      case 'month':
+        return <Calendar className="h-5 w-5 text-purple-500" />;
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Filter Chips */}
+      {/* Time Period Tabs - Product Hunt Style */}
+      <div className="flex items-center gap-1 p-1 bg-muted rounded-lg w-fit">
+        {TIME_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setTimePeriod(tab.value)}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all',
+              timePeriod === tab.value
+                ? 'bg-white text-orange-600 shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Stage Filter Chips */}
       <div className="flex items-center gap-2 flex-wrap">
         {STAGE_FILTERS.map((filter) => (
           <Badge
             key={filter.value}
             variant={activeFilter === filter.value ? 'default' : 'outline'}
             className={cn(
-              'cursor-pointer transition-colors px-3 py-1',
+              'cursor-pointer transition-colors px-3 py-1.5 text-xs',
               activeFilter === filter.value
                 ? 'bg-orange-500 hover:bg-orange-600'
                 : 'hover:bg-muted'
@@ -184,74 +199,50 @@ export function StartupFeed() {
       )}
 
       {/* Empty State */}
-      {!isLoading && !error && filteredStartups.length === 0 && (
+      {!isLoading && !error && startups.length === 0 && (
         <div className="text-center py-16 px-4">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-orange-100 mb-6">
             <Rocket className="h-10 w-10 text-orange-500" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">No startups found</h3>
+          <h3 className="text-xl font-semibold mb-2">
+            {timePeriod === 'today'
+              ? 'No products launched today yet'
+              : `No products found for ${timePeriod}`}
+          </h3>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            {activeFilter === 'all'
-              ? "Be the first to share your startup with the community!"
-              : "No startups match this filter. Try a different category."}
+            {timePeriod === 'today'
+              ? "Be the first to launch today! Submit your startup now."
+              : "Try checking a different time period or submit your own startup."}
           </p>
           <Link href="/submit">
             <Button className="bg-orange-500 hover:bg-orange-600">
-              Submit Your Startup
+              Launch Your Startup
             </Button>
           </Link>
         </div>
       )}
 
-      {/* Feed Sections */}
-      {!isLoading && !error && filteredStartups.length > 0 && (
-      <div className="space-y-8">
-        {/* Today */}
-        <FeedSection
-          title="Top Products Launching Today"
-          icon={<Rocket className="h-5 w-5 text-orange-500" />}
-          startups={todayStartups}
-          showRank
-        />
+      {/* Feed Section - Single list based on time period */}
+      {!isLoading && !error && startups.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="flex items-center gap-2 font-semibold text-lg">
+            {getSectionIcon()}
+            {getSectionTitle()}
+            <span className="text-sm font-normal text-muted-foreground">
+              ({startups.length} products)
+            </span>
+          </h2>
 
-        {todayStartups.length > 0 && (
-          <div className="text-center">
-            <Button variant="outline" size="sm">
-              See all of today&apos;s products →
-            </Button>
+          <div className="space-y-3">
+            {startups.map((startup, index) => (
+              <StartupCard
+                key={startup.id}
+                startup={{...startup, todayRank: index + 1}}
+                showRank={timePeriod === 'today'}
+              />
+            ))}
           </div>
-        )}
-
-        <Separator />
-
-        {/* Yesterday */}
-        <FeedSection
-          title="Yesterday's Top Products"
-          icon={<Calendar className="h-5 w-5 text-blue-500" />}
-          startups={yesterdayStartups}
-          collapsible
-        />
-
-        {yesterdayStartups.length > 0 && <Separator />}
-
-        {/* Last Week */}
-        <FeedSection
-          title="Last Week's Top Products"
-          icon={<TrendingUp className="h-5 w-5 text-green-500" />}
-          startups={lastWeekStartups}
-          collapsible
-        />
-
-        {lastWeekStartups.length > 0 && <Separator />}
-
-        {/* Older (Last Month) */}
-        <FeedSection
-          title="Last Month's Top Products"
-          icon={<Sparkles className="h-5 w-5 text-purple-500" />}
-          startups={olderStartups}
-          collapsible
-        />
-      </div>
+        </div>
       )}
 
       {/* Newsletter CTA */}

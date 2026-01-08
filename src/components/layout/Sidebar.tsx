@@ -136,48 +136,48 @@ export function Sidebar() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <TooltipProvider>
-            {isLoading ? (
-              <SidebarSkeleton />
-            ) : trendingStartups.length > 0 ? (
-              trendingStartups.map((startup, index) => (
-                <div key={startup.id} className="flex items-center justify-between hover:bg-muted/50 -mx-2 px-2 py-1 rounded-md transition-colors">
-                  <Link
-                    href={`/startup/${startup.slug}`}
-                    className="flex items-center gap-2 flex-1"
-                  >
-                    <span className="text-sm font-medium text-muted-foreground w-4">
-                      {index + 1}.
-                    </span>
-                    <span className="font-medium text-sm">{startup.name}</span>
-                  </Link>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground cursor-help">
-                        <TrendingUp className="h-3 w-3" />
-                        {startup.trendScore ? Math.round(startup.trendScore) : startup.upvoteCount}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="left" className="max-w-[200px]">
-                      <p className="font-semibold text-xs mb-1">Why trending?</p>
-                      {startup.trendDetails ? (
-                        <div className="text-xs space-y-0.5">
-                          <p>{startup.trendDetails.upvotes7d} upvotes (×2)</p>
-                          <p>{startup.trendDetails.comments7d} comments (×3)</p>
-                          <p>{startup.trendDetails.guesses7d} guesses (×1)</p>
-                          <p>+{startup.trendDetails.recencyBonus.toFixed(1)} recency bonus</p>
-                        </div>
-                      ) : (
-                        <p className="text-xs">{startup.whyTrending || `${startup.upvoteCount} upvotes this week`}</p>
-                      )}
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">No startups yet</p>
-            )}
-          </TooltipProvider>
+          {isLoading ? (
+            <SidebarSkeleton />
+          ) : trendingStartups.length > 0 ? (
+            <>
+              {trendingStartups.map((startup, index) => (
+                <Link
+                  key={startup.id}
+                  href={`/startup/${startup.slug}`}
+                  className="block hover:bg-muted/50 -mx-2 px-2 py-2 rounded-md transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-orange-500 w-5">
+                        #{index + 1}
+                      </span>
+                      <span className="font-medium text-sm">{startup.name}</span>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {startup.trendScore ? Math.round(startup.trendScore) : startup.upvoteCount} pts
+                    </Badge>
+                  </div>
+                  {/* Activity breakdown - always visible */}
+                  <div className="flex items-center gap-3 mt-1 ml-7 text-[11px] text-muted-foreground">
+                    {startup.trendDetails ? (
+                      <>
+                        <span>↑{startup.trendDetails.upvotes7d}</span>
+                        <span>💬{startup.trendDetails.comments7d}</span>
+                        <span>🎯{startup.trendDetails.guesses7d}</span>
+                      </>
+                    ) : (
+                      <span>↑{startup.upvoteCount} upvotes</span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+              <p className="text-[10px] text-muted-foreground mt-2 text-center italic">
+                Ranked by activity in the last 7 days
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">No startups yet</p>
+          )}
         </CardContent>
       </Card>
 

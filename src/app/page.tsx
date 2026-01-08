@@ -2,11 +2,13 @@ import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { StartupFeed } from '@/components/feed/StartupFeed';
 import { Hero } from '@/components/feed/Hero';
+import { JustVerifiedBanner } from '@/components/feed/JustVerifiedBanner';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
+      <JustVerifiedBanner />
       <Hero />
 
       <main className="w-full px-4 py-8">

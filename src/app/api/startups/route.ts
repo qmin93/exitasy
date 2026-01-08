@@ -17,11 +17,52 @@ export async function GET(req: Request) {
     const minMRR = searchParams.get('minMRR') ? parseInt(searchParams.get('minMRR')!) : undefined;
     const maxMRR = searchParams.get('maxMRR') ? parseInt(searchParams.get('maxMRR')!) : undefined;
     const search = searchParams.get('search');
+    const period = searchParams.get('period'); // today, yesterday, week, month
 
     const skip = (page - 1) * limit;
 
+    // Calculate date ranges for period filter
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const monthAgo = new Date(today);
+    monthAgo.setDate(monthAgo.getDate() - 30);
+
     // Build where clause
     const where: Record<string, unknown> = {};
+
+    // Time period filter (based on launchDate or createdAt)
+    if (period) {
+      switch (period) {
+        case 'today':
+          where.OR = [
+            { launchDate: { gte: today } },
+            { AND: [{ launchDate: null }, { createdAt: { gte: today } }] },
+          ];
+          break;
+        case 'yesterday':
+          where.OR = [
+            { launchDate: { gte: yesterday, lt: today } },
+            { AND: [{ launchDate: null }, { createdAt: { gte: yesterday, lt: today } }] },
+          ];
+          break;
+        case 'week':
+          where.OR = [
+            { launchDate: { gte: weekAgo } },
+            { AND: [{ launchDate: null }, { createdAt: { gte: weekAgo } }] },
+          ];
+          break;
+        case 'month':
+          where.OR = [
+            { launchDate: { gte: monthAgo } },
+            { AND: [{ launchDate: null }, { createdAt: { gte: monthAgo } }] },
+          ];
+          break;
+      }
+    }
 
     // Verification filter
     if (verifiedOnly) {

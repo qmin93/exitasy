@@ -102,27 +102,36 @@ export function StartupCard({ startup, showRank = false }: StartupCardProps) {
   };
 
   return (
-    <Card className="hover:shadow-lg hover:border-orange-200 transition-all duration-200 group">
-      <CardContent className="p-4">
-        <div className="flex gap-4">
-          {/* Upvote Button */}
-          <div className="flex flex-col items-center">
-            <Button
-              variant={upvoted ? 'default' : 'outline'}
-              size="sm"
-              className={cn(
-                'flex flex-col h-14 w-12 p-0',
-                upvoted && 'bg-orange-500 hover:bg-orange-600 border-orange-500'
-              )}
-              onClick={handleUpvote}
-            >
-              <ChevronUp className="h-5 w-5" />
-              <span className="text-xs font-bold">{upvoteCount}</span>
-            </Button>
-          </div>
+    <Card className="hover:shadow-lg hover:border-orange-200 transition-all duration-200 group overflow-hidden">
+      <CardContent className="p-0">
+        <div className="flex">
+          {/* Product Hunt Style Upvote Button - LEFT COLUMN */}
+          <button
+            onClick={handleUpvote}
+            className={cn(
+              'flex flex-col items-center justify-center px-4 py-6 border-r transition-all duration-200 min-w-[72px]',
+              upvoted
+                ? 'bg-orange-500 text-white border-orange-500'
+                : 'bg-gray-50 hover:bg-orange-50 text-gray-600 hover:text-orange-600 border-gray-100'
+            )}
+          >
+            <ChevronUp className={cn(
+              'h-6 w-6 transition-transform duration-200',
+              upvoted && 'animate-bounce'
+            )} />
+            <span className={cn(
+              'text-lg font-bold mt-1',
+              upvoted ? 'text-white' : 'text-gray-900'
+            )}>
+              {upvoteCount}
+            </span>
+            <span className="text-[10px] uppercase tracking-wide mt-0.5 opacity-70">
+              upvote
+            </span>
+          </button>
 
-          {/* Main Content */}
-          <div className="flex-1 min-w-0">
+          {/* Main Content - RIGHT COLUMN */}
+          <div className="flex-1 p-4 min-w-0">
             <div className="flex items-start gap-3">
               {/* Logo */}
               <Link href={`/startup/${startup.slug}`}>
