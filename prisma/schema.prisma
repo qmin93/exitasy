@@ -68,9 +68,15 @@ model User {
   location      String?
   onboardingCompleted Boolean @default(false)
 
+  // Role & Plan (Monetization)
+  role          String    @default("guesser") // founder, buyer, guesser
+  plan          String    @default("free")    // free, buyer, pro
+
   // Stats
   guessAccuracy Float     @default(0)
   guessRank     Int       @default(0)
+  totalGuesses  Int       @default(0)
+  correctGuesses Int      @default(0)
   totalMRR      Int       @default(0)
 
   createdAt     DateTime  @default(now())

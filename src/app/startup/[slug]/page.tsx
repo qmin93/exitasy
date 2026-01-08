@@ -34,6 +34,7 @@ import { Separator } from '@/components/ui/separator';
 import { GuessGame } from '@/components/guess/GuessGame';
 import { CommentSection } from '@/components/comments/CommentSection';
 import { ActionRow } from '@/components/startup/ActionRow';
+import { BuyerLock, BuyerLockBadge, LockedText } from '@/components/ui/buyer-lock';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
