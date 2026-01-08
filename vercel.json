@@ -16,6 +16,10 @@
   ],
   "crons": [
     {
+      "path": "/api/trending/recalculate",
+      "schedule": "0 * * * *"
+    },
+    {
       "path": "/api/cron/update-trends",
       "schedule": "0 9 * * *"
     },

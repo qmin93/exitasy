@@ -14,6 +14,46 @@ export async function POST(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check buyer access
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!user) {
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    }
+
+    // Only approved buyers or admins can request intro
+    const hasBuyerAccess =
+      user.role === 'ADMIN' ||
+      (user.role === 'BUYER' && user.buyerStatus === 'APPROVED');
+
+    if (!hasBuyerAccess) {
+      // Provide specific error messages based on status
+      if (user.role === 'FOUNDER') {
+        return NextResponse.json(
+          { message: 'Founders cannot request intros. Apply as a buyer first.', code: 'FOUNDER_NOT_ALLOWED' },
+          { status: 403 }
+        );
+      }
+      if (user.role === 'BUYER' && user.buyerStatus === 'PENDING') {
+        return NextResponse.json(
+          { message: 'Your buyer application is pending approval.', code: 'BUYER_PENDING' },
+          { status: 403 }
+        );
+      }
+      if (user.role === 'BUYER' && user.buyerStatus === 'REJECTED') {
+        return NextResponse.json(
+          { message: 'Your buyer application was not approved.', code: 'BUYER_REJECTED' },
+          { status: 403 }
+        );
+      }
+      return NextResponse.json(
+        { message: 'You need to be an approved buyer to request intros.', code: 'NOT_BUYER' },
+        { status: 403 }
+      );
+    }
+
     const { slug } = await params;
     const body = await req.json();
     const { companyName, message, budgetRange, timeline, buyerType, operatorPlan, linkedin } = body;

@@ -235,22 +235,76 @@ export default function FounderDashboardPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <main className="container mx-auto px-4 py-8 max-w-2xl">
-          <Card className="border-2 border-dashed">
+        <main className="container mx-auto px-4 py-8 max-w-3xl">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold">Welcome to Exitasy</h1>
+            <p className="text-muted-foreground mt-2">
+              The marketplace where profitable startups find their next owner
+            </p>
+          </div>
+
+          <Card className="border-2 border-dashed border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
             <CardContent className="py-12 text-center">
-              <Rocket className="h-12 w-12 text-orange-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Launch Your First Startup</h2>
-              <p className="text-muted-foreground mb-6">
-                You don't have any startups yet. Launch one to see your founder dashboard.
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200">
+                <Rocket className="h-10 w-10 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold mb-3">Launch Your First Startup</h2>
+              <p className="text-muted-foreground mb-2 max-w-md mx-auto">
+                List your profitable side project or startup. Get discovered by serious buyers and connect with the community.
               </p>
+              <div className="flex flex-wrap justify-center gap-2 mb-6">
+                <Badge variant="secondary" className="bg-green-100 text-green-700">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Free to list
+                </Badge>
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                  <Users className="h-3 w-3 mr-1" />
+                  Verified buyers
+                </Badge>
+                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                  <Eye className="h-3 w-3 mr-1" />
+                  Revenue verification
+                </Badge>
+              </div>
               <Link href="/submit">
-                <Button className="bg-orange-500 hover:bg-orange-600 gap-2">
-                  <Rocket className="h-4 w-4" />
-                  Launch Startup
+                <Button size="lg" className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 gap-2 shadow-lg shadow-orange-200">
+                  <Rocket className="h-5 w-5" />
+                  Launch Your Startup
                 </Button>
               </Link>
             </CardContent>
           </Card>
+
+          {/* Getting Started Steps */}
+          <div className="mt-8 grid md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="p-6 text-center">
+                <div className="text-2xl font-bold text-orange-500 mb-2">1</div>
+                <h3 className="font-semibold mb-1">List Your Startup</h3>
+                <p className="text-sm text-muted-foreground">
+                  Add your product details, MRR, and what makes it sellable
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6 text-center">
+                <div className="text-2xl font-bold text-orange-500 mb-2">2</div>
+                <h3 className="font-semibold mb-1">Get Discovered</h3>
+                <p className="text-sm text-muted-foreground">
+                  Verified buyers browse and express interest in your product
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6 text-center">
+                <div className="text-2xl font-bold text-orange-500 mb-2">3</div>
+                <h3 className="font-semibold mb-1">Connect & Exit</h3>
+                <p className="text-sm text-muted-foreground">
+                  Review intro requests and connect with serious buyers
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </main>
       </div>
     );
@@ -272,15 +326,123 @@ export default function FounderDashboardPage() {
         </div>
 
         {/* ============================================ */}
+        {/* KPI CARDS                                   */}
+        {/* ============================================ */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-orange-600 font-medium">Listings</p>
+                  <p className="text-3xl font-bold text-orange-700">{data.startups.length}</p>
+                </div>
+                <div className="p-3 bg-orange-200/50 rounded-full">
+                  <Rocket className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+              <p className="text-xs text-orange-600/70 mt-2">
+                {data.startups.filter(s => s.stage === 'FOR_SALE').length} for sale
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-green-600 font-medium">Buyer Signals</p>
+                  <p className="text-3xl font-bold text-green-700">{data.todaySnapshot.totalBuyerInterest}</p>
+                </div>
+                <div className="p-3 bg-green-200/50 rounded-full">
+                  <Users className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+              <p className="text-xs text-green-600/70 mt-2">
+                {data.buyerPipeline.pending} pending review
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-blue-600 font-medium">Total MRR</p>
+                  <p className="text-3xl font-bold text-blue-700">
+                    ${(data.todaySnapshot.totalMRR / 1000).toFixed(1)}K
+                  </p>
+                </div>
+                <div className="p-3 bg-blue-200/50 rounded-full">
+                  <DollarSign className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+              <p className="text-xs text-blue-600/70 mt-2">
+                Across all listings
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-purple-600 font-medium">Engagement</p>
+                  <p className="text-3xl font-bold text-purple-700">
+                    {data.todaySnapshot.totalUpvotes + data.todaySnapshot.totalComments}
+                  </p>
+                </div>
+                <div className="p-3 bg-purple-200/50 rounded-full">
+                  <Activity className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+              <p className="text-xs text-purple-600/70 mt-2">
+                {data.todaySnapshot.upvotesToday + data.todaySnapshot.commentsToday} today
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ============================================ */}
+        {/* RESPONSE SLA BANNER                         */}
+        {/* ============================================ */}
+        {pendingRequests.length > 0 && (
+          <Card className="mb-6 border-2 border-yellow-300 bg-gradient-to-r from-yellow-50 to-amber-50">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-yellow-200 rounded-full animate-pulse">
+                    <Clock className="h-5 w-5 text-yellow-700" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-yellow-800">
+                      You have {pendingRequests.length} pending intro request{pendingRequests.length > 1 ? 's' : ''}
+                    </p>
+                    <p className="text-sm text-yellow-700">
+                      Respond within 24-48 hours to keep buyers engaged
+                    </p>
+                  </div>
+                </div>
+                <Link href="/dashboard/requests">
+                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-yellow-900">
+                    Review Now
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ============================================ */}
         {/* TODAY'S SNAPSHOT                            */}
         {/* ============================================ */}
         <Card className="mb-8 border-t-4 border-t-orange-500">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-orange-500" />
-              Today's Snapshot
+              Today's Activity
             </CardTitle>
-            <CardDescription>Activity in the last 24 hours</CardDescription>
+            <CardDescription>What happened in the last 24 hours</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -290,7 +452,7 @@ export default function FounderDashboardPage() {
                 </div>
                 <div className="text-sm text-orange-600/80 flex items-center justify-center gap-1">
                   <ChevronUp className="h-4 w-4" />
-                  New Upvotes
+                  Upvotes
                 </div>
               </div>
               <div className="p-4 bg-blue-50 rounded-lg text-center">
@@ -299,7 +461,7 @@ export default function FounderDashboardPage() {
                 </div>
                 <div className="text-sm text-blue-600/80 flex items-center justify-center gap-1">
                   <MessageSquare className="h-4 w-4" />
-                  New Comments
+                  Comments
                 </div>
               </div>
               <div className="p-4 bg-purple-50 rounded-lg text-center">
@@ -308,7 +470,7 @@ export default function FounderDashboardPage() {
                 </div>
                 <div className="text-sm text-purple-600/80 flex items-center justify-center gap-1">
                   <Target className="h-4 w-4" />
-                  New Guesses
+                  Guesses
                 </div>
               </div>
               <div className="p-4 bg-green-50 rounded-lg text-center">
@@ -317,25 +479,8 @@ export default function FounderDashboardPage() {
                 </div>
                 <div className="text-sm text-green-600/80 flex items-center justify-center gap-1">
                   <Users className="h-4 w-4" />
-                  Pending Intros
+                  New Intros
                 </div>
-              </div>
-            </div>
-
-            {/* Totals */}
-            <div className="mt-4 pt-4 border-t flex items-center justify-between text-sm text-muted-foreground">
-              <div className="flex items-center gap-4">
-                <span>
-                  Total: {data.todaySnapshot.totalUpvotes} upvotes ·{' '}
-                  {data.todaySnapshot.totalComments} comments ·{' '}
-                  {data.todaySnapshot.totalGuesses} guesses
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-green-500" />
-                <span className="font-medium text-green-600">
-                  ${(data.todaySnapshot.totalMRR / 1000).toFixed(1)}K Total MRR
-                </span>
               </div>
             </div>
           </CardContent>

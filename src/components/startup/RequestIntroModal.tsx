@@ -11,6 +11,9 @@ import {
   Briefcase,
   Clock,
   XCircle,
+  Shield,
+  Lock,
+  ArrowRight,
 } from 'lucide-react';
 import {
   Dialog,
@@ -34,6 +37,7 @@ import {
 } from '@/components/ui/select';
 import { useSession } from 'next-auth/react';
 import { formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
 
 interface RequestIntroModalProps {
   startupName: string;
@@ -75,13 +79,23 @@ const BUYER_TYPES = [
   { value: 'strategic', label: 'Strategic buyer (competitor/adjacent)' },
 ];
 
+// Extended session type for buyer status
+interface ExtendedUser {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role?: 'FOUNDER' | 'BUYER' | 'ADMIN';
+  buyerStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+}
+
 export function RequestIntroModal({
   startupName,
   startupSlug,
   askingPrice,
   children,
 }: RequestIntroModalProps) {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -94,6 +108,19 @@ export function RequestIntroModal({
     reviewedAt: null,
     reviewNote: null,
   });
+
+  // Get user role and buyer status
+  const user = session?.user as ExtendedUser | undefined;
+  const isLoggedIn = !!session;
+  const isAdmin = user?.role === 'ADMIN';
+  const isBuyer = user?.role === 'BUYER';
+  const isApprovedBuyer = isBuyer && user?.buyerStatus === 'APPROVED';
+  const isPendingBuyer = isBuyer && user?.buyerStatus === 'PENDING';
+  const isRejectedBuyer = isBuyer && user?.buyerStatus === 'REJECTED';
+  const isFounder = user?.role === 'FOUNDER';
+
+  // Has buyer access (can request intro)
+  const hasBuyerAccess = isAdmin || isApprovedBuyer;
 
   // Form state
   const [companyName, setCompanyName] = useState('');
@@ -179,6 +206,122 @@ export function RequestIntroModal({
 
   // Render status-based content
   const renderStatusContent = () => {
+    // Loading session
+    if (sessionStatus === 'loading') {
+      return (
+        <div className="py-8 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
+          <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
+        </div>
+      );
+    }
+
+    // Not logged in
+    if (!isLoggedIn) {
+      return (
+        <div className="py-8 text-center">
+          <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <Lock className="h-8 w-8 text-gray-500" />
+          </div>
+          <DialogTitle className="text-xl mb-2">Sign In Required</DialogTitle>
+          <DialogDescription className="mb-6">
+            Please sign in to request an introduction to the founder of <strong>{startupName}</strong>.
+          </DialogDescription>
+          <Button asChild>
+            <Link href="/api/auth/signin">
+              Sign In to Continue
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      );
+    }
+
+    // Founder trying to request intro
+    if (isFounder) {
+      return (
+        <div className="py-8 text-center">
+          <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
+            <Shield className="h-8 w-8 text-purple-600" />
+          </div>
+          <DialogTitle className="text-xl mb-2">Buyers Only</DialogTitle>
+          <DialogDescription className="mb-6">
+            You're logged in as a Founder. To request introductions, you need to apply as a Buyer.
+          </DialogDescription>
+          <Button asChild className="bg-purple-600 hover:bg-purple-700">
+            <Link href="/buyer/apply">
+              Apply as Buyer
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      );
+    }
+
+    // Pending buyer
+    if (isPendingBuyer) {
+      return (
+        <div className="py-8 text-center">
+          <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+            <Clock className="h-8 w-8 text-yellow-600" />
+          </div>
+          <DialogTitle className="text-xl mb-2">Verification in Progress</DialogTitle>
+          <DialogDescription className="mb-4">
+            Your buyer application is being reviewed. Once approved, you'll be able to request introductions.
+          </DialogDescription>
+          <Badge className="bg-yellow-100 text-yellow-800">
+            <Clock className="h-3 w-3 mr-1" />
+            Usually 24-48 hours
+          </Badge>
+          <div className="mt-6">
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // Rejected buyer
+    if (isRejectedBuyer) {
+      return (
+        <div className="py-8 text-center">
+          <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <XCircle className="h-8 w-8 text-red-600" />
+          </div>
+          <DialogTitle className="text-xl mb-2">Application Not Approved</DialogTitle>
+          <DialogDescription className="mb-6">
+            Unfortunately, your buyer application wasn't approved. Please contact support for more information.
+          </DialogDescription>
+          <Button variant="outline" asChild>
+            <Link href="/support">Contact Support</Link>
+          </Button>
+        </div>
+      );
+    }
+
+    // Not a buyer at all (not founder, not buyer, just regular user)
+    if (!hasBuyerAccess) {
+      return (
+        <div className="py-8 text-center">
+          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <Shield className="h-8 w-8 text-green-600" />
+          </div>
+          <DialogTitle className="text-xl mb-2">Become a Verified Buyer</DialogTitle>
+          <DialogDescription className="mb-6">
+            To request an introduction to founders, you need to apply as a verified buyer.
+          </DialogDescription>
+          <Button asChild className="bg-green-600 hover:bg-green-700">
+            <Link href="/buyer/apply">
+              Apply as Buyer
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      );
+    }
+
+    // Has buyer access - check intro request loading state
     if (isLoading) {
       return (
         <div className="py-8 text-center">

@@ -196,6 +196,7 @@ model Startup {
   eventLogs       EventLog[]
   follows         Follow[]
   trendScore      TrendScore?
+  trendingSnapshots TrendingSnapshot[]
 }
 
 model StartupMaker {
@@ -410,7 +411,7 @@ model Follow {
 }
 
 // ============================================
-// Trend Score Cache (for performance)
+// Trend Score Cache (Legacy - for backward compatibility)
 // ============================================
 
 model TrendScore {
@@ -426,4 +427,35 @@ model TrendScore {
   startup      Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
 
   @@index([score(sort: Desc)])
+}
+
+// ============================================
+// Trending Snapshot (v5.0 EventLog-Based)
+// ============================================
+// Weights: introRequest=12, guess=6, comment=3, upvote=2
+// Half-life: 36 hours
+// Multipliers: verified=1.15, for_sale=1.1, sold=0.2
+// ACCEPTED intro bonus: +8
+
+model TrendingSnapshot {
+  id           String   @id @default(cuid())
+  startupId    String
+  score        Float    @default(0)
+  window       String   @default("7d") // "7d" | "24h"
+
+  // Breakdown (for debugging/display)
+  upvoteScore      Float @default(0)
+  commentScore     Float @default(0)
+  guessScore       Float @default(0)
+  introRequestScore Float @default(0)
+  introAcceptedBonus Float @default(0)
+  statusMultiplier Float @default(1.0)
+
+  calculatedAt DateTime @default(now())
+
+  startup      Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+
+  @@unique([startupId, window])
+  @@index([window, score(sort: Desc)])
+  @@index([calculatedAt])
 }
