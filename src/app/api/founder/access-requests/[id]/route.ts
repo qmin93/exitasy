@@ -6,7 +6,7 @@ import prisma from '@/lib/prisma';
 // GET /api/founder/access-requests/[id] - Get specific request details
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const request = await prisma.buyerAccessRequest.findUnique({
       where: { id },
@@ -78,7 +78,7 @@ export async function GET(
 // PATCH /api/founder/access-requests/[id] - Approve or reject request
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -86,7 +86,7 @@ export async function PATCH(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const { action, reviewNote } = body;
 
