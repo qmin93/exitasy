@@ -6,7 +6,7 @@ import prisma from '@/lib/prisma';
 // POST /api/startups/[slug]/intro-request - Request intro to founder
 export async function POST(
   req: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +14,7 @@ export async function POST(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { slug } = params;
+    const { slug } = await params;
     const body = await req.json();
     const { message, budgetRange, timeline, buyerType, linkedin } = body;
 
@@ -149,7 +149,7 @@ export async function POST(
 // GET /api/startups/[slug]/intro-request - Get user's intro request status
 export async function GET(
   req: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -160,7 +160,7 @@ export async function GET(
       });
     }
 
-    const { slug } = params;
+    const { slug } = await params;
 
     const startup = await prisma.startup.findUnique({
       where: { slug },
