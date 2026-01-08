@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { TrendingUp, Target, CheckCircle, DollarSign, MessageSquare } from 'lucide-react';
+import { TrendingUp, Target, CheckCircle, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -42,13 +42,6 @@ interface TopGuesser {
   accuracy: number;
 }
 
-interface ForumThread {
-  id: string;
-  title: string;
-  createdAt: string;
-  replyCount: number;
-}
-
 interface VerifiedStartup {
   id: string;
   name: string;
@@ -74,7 +67,6 @@ export function Sidebar() {
   const [trendingStartups, setTrendingStartups] = useState<TrendingStartup[]>([]);
   const [forSaleStartups, setForSaleStartups] = useState<ForSaleStartup[]>([]);
   const [topGuessers, setTopGuessers] = useState<TopGuesser[]>([]);
-  const [forumThreads, setForumThreads] = useState<ForumThread[]>([]);
   const [recentlyVerified, setRecentlyVerified] = useState<VerifiedStartup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -82,11 +74,10 @@ export function Sidebar() {
     async function fetchSidebarData() {
       setIsLoading(true);
       try {
-        const [trendingRes, forSaleRes, leaderboardRes, forumRes, verifiedRes] = await Promise.all([
+        const [trendingRes, forSaleRes, leaderboardRes, verifiedRes] = await Promise.all([
           fetch('/api/trending?limit=5&period=7d'),
           fetch('/api/startups?forSale=true&limit=3'),
           fetch('/api/leaderboard?limit=3'),
-          fetch('/api/forum?limit=3'),
           fetch('/api/startups?sort=latest&limit=3'),
         ]);
 
@@ -103,11 +94,6 @@ export function Sidebar() {
         if (leaderboardRes.ok) {
           const data = await leaderboardRes.json();
           setTopGuessers(data.users || []);
-        }
-
-        if (forumRes.ok) {
-          const data = await forumRes.json();
-          setForumThreads(data.threads || []);
         }
 
         if (verifiedRes.ok) {
@@ -290,47 +276,6 @@ export function Sidebar() {
             </>
           ) : (
             <p className="text-sm text-muted-foreground">No deals available</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Active Discussions - Compact */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <div className="p-1.5 rounded-lg bg-muted">
-              <MessageSquare className="h-4 w-4 text-blue-500" />
-            </div>
-            <span>Discussions</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 pt-0">
-          {isLoading ? (
-            <SidebarSkeleton />
-          ) : forumThreads.length > 0 ? (
-            <>
-              {forumThreads.map((thread) => (
-                <Link
-                  key={thread.id}
-                  href={`/forum/${thread.id}`}
-                  className="block hover:bg-muted/50 -mx-2 px-2 py-1.5 rounded-md transition-colors"
-                >
-                  <p className="text-sm font-medium line-clamp-1">{thread.title}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {thread.replyCount} replies ·{' '}
-                    {formatDistanceToNow(new Date(thread.createdAt), { addSuffix: true })}
-                  </p>
-                </Link>
-              ))}
-              <Link
-                href="/forum"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors block mt-1 text-center"
-              >
-                Join discussions →
-              </Link>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">No discussions yet</p>
           )}
         </CardContent>
       </Card>

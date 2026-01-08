@@ -819,6 +819,60 @@ export default function StartupDetailPage() {
                         </div>
                       )}
 
+                      {/* Who is this for? - Target Buyer Profile */}
+                      <div className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg border border-green-200">
+                        <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+                          <Target className="h-4 w-4" />
+                          Who is this for?
+                        </h4>
+                        <p className="text-sm text-green-700">
+                          {startup.targetUsers || `Perfect for indie hackers, SaaS operators, or anyone looking to own a ${startup.categories[0]?.toLowerCase() || 'proven'} business with ${formatMRR(startup.currentMRR)} MRR.`}
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          <Badge variant="outline" className="bg-white border-green-300 text-green-700 text-xs">
+                            🎯 First-time buyers
+                          </Badge>
+                          <Badge variant="outline" className="bg-white border-green-300 text-green-700 text-xs">
+                            💼 Portfolio acquirers
+                          </Badge>
+                          <Badge variant="outline" className="bg-white border-green-300 text-green-700 text-xs">
+                            🚀 Operators
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Buyer-Only Data - Locked for free users */}
+                      <BuyerLock
+                        feature="Detailed Financial Data"
+                        description="Access revenue breakdown, expense details, customer metrics, and direct contact with the founder."
+                        requiredPlan="buyer"
+                      >
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 bg-gray-50 rounded-lg">
+                              <div className="text-lg font-bold">$8,450</div>
+                              <div className="text-xs text-muted-foreground">Last 30d Revenue</div>
+                            </div>
+                            <div className="p-3 bg-gray-50 rounded-lg">
+                              <div className="text-lg font-bold">$2,100</div>
+                              <div className="text-xs text-muted-foreground">Monthly Expenses</div>
+                            </div>
+                            <div className="p-3 bg-gray-50 rounded-lg">
+                              <div className="text-lg font-bold">156</div>
+                              <div className="text-xs text-muted-foreground">Active Customers</div>
+                            </div>
+                            <div className="p-3 bg-gray-50 rounded-lg">
+                              <div className="text-lg font-bold">4.2%</div>
+                              <div className="text-xs text-muted-foreground">Monthly Churn</div>
+                            </div>
+                          </div>
+                          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="text-sm font-medium text-blue-700">Contact Founder</div>
+                            <div className="text-xs text-blue-600">Send a direct message to discuss acquisition</div>
+                          </div>
+                        </div>
+                      </BuyerLock>
+
                       <div className="flex items-center justify-between pt-4 border-t">
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Eye className="h-4 w-4" />

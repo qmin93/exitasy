@@ -428,10 +428,10 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-7 text-xs gap-1 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200"
+                              className="h-7 text-xs gap-1.5 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 font-medium"
                             >
-                              <Gamepad2 className="h-3 w-3" />
-                              Guess MRR
+                              <Gamepad2 className="h-3.5 w-3.5" />
+                              Guess & Compete
                             </Button>
                           </Link>
                           <Link href={`/startup/${startup.slug}#comments`}>
