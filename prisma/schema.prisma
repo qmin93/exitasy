@@ -1,13 +1,14 @@
 // Exitasy Database Schema
-// SQLite for local development
+// PostgreSQL for production, SQLite for local development
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================
@@ -107,10 +108,10 @@ model Startup {
   name            String
   slug            String   @unique
   tagline         String
-  description     String
+  description     String   @db.Text
   logo            String?
   website         String
-  screenshots     String   @default("[]") // JSON array
+  screenshots     String   @default("[]") @db.Text // JSON array
   videoUrl        String?
 
   // Revenue
@@ -126,9 +127,9 @@ model Startup {
   stage           String   @default("MAKING_MONEY") // MAKING_MONEY, EXIT_READY, ACQUISITION_INTEREST, FOR_SALE, SOLD
   askingPrice     Int?
   saleMultiple    Float?
-  saleIncludes    String   @default("[]") // JSON array
-  saleReason      String?
-  sellabilityReasons String @default("[]") // JSON array
+  saleIncludes    String   @default("[]") @db.Text // JSON array
+  saleReason      String?  @db.Text
+  sellabilityReasons String @default("[]") @db.Text // JSON array
 
   // Engagement
   upvoteCount     Int      @default(0)
@@ -137,7 +138,7 @@ model Startup {
   buyerInterestCount Int   @default(0)
 
   // Meta
-  categories      String   @default("[]") // JSON array
+  categories      String   @default("[]") @db.Text // JSON array
   launchDate      DateTime?
   todayRank       Int?
 
@@ -198,7 +199,7 @@ model Upvote {
 
 model Comment {
   id        String    @id @default(cuid())
-  content   String
+  content   String    @db.Text
   userId    String
   startupId String
   parentId  String?
@@ -247,7 +248,7 @@ model BuyerInterest {
 model ForumThread {
   id         String   @id @default(cuid())
   title      String
-  content    String
+  content    String   @db.Text
   category   String   // REVENUE_GROWTH, EXIT_STRATEGY, ACQUISITION, SHOW_TELL, AMA
   userId     String
   upvotes    Int      @default(0)
@@ -262,7 +263,7 @@ model ForumThread {
 
 model ForumReply {
   id        String      @id @default(cuid())
-  content   String
+  content   String      @db.Text
   userId    String
   threadId  String
   parentId  String?
