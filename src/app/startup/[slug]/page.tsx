@@ -324,63 +324,135 @@ export default function StartupDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Header Section */}
-            <Card>
+            {/* ============================================ */}
+            {/* HERO SECTION - Trophy Page Identity          */}
+            {/* ============================================ */}
+            <Card className={cn(
+              "overflow-hidden",
+              isForSale && "border-green-200 bg-gradient-to-r from-green-50/50 to-white",
+              !isForSale && startup.todayRank && startup.todayRank <= 5 && "border-orange-200 bg-gradient-to-r from-orange-50/50 to-white"
+            )}>
               <CardContent className="p-6">
+                {/* Top Row: Logo + Info + Ranking */}
                 <div className="flex gap-6">
-                  {/* Logo */}
-                  <Avatar className="h-20 w-20 rounded-xl">
-                    <AvatarImage src={startup.logo || undefined} alt={startup.name} />
-                    <AvatarFallback className="rounded-xl bg-gradient-to-br from-orange-400 to-pink-500 text-white text-2xl font-bold">
-                      {startup.name.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  {/* Logo - Larger with ring */}
+                  <div className="relative">
+                    <Avatar className={cn(
+                      "h-24 w-24 rounded-xl ring-4 ring-offset-2",
+                      startup.verificationStatus === 'VERIFIED' ? "ring-green-200" : "ring-gray-100"
+                    )}>
+                      <AvatarImage src={startup.logo || undefined} alt={startup.name} />
+                      <AvatarFallback className="rounded-xl bg-gradient-to-br from-orange-400 to-pink-500 text-white text-3xl font-bold">
+                        {startup.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {startup.verificationStatus === 'VERIFIED' && (
+                      <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1">
+                        <CheckCircle className="h-4 w-4 text-white" />
+                      </div>
+                    )}
+                  </div>
 
                   {/* Info */}
                   <div className="flex-1">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h1 className="text-2xl font-bold">{startup.name}</h1>
-                        <p className="text-muted-foreground mt-1">
+                        <h1 className="text-3xl font-bold">{startup.name}</h1>
+                        <p className="text-lg text-muted-foreground mt-1">
                           {startup.tagline}
                         </p>
                       </div>
 
-                      {/* Ranking Badge */}
+                      {/* Ranking Badge - More prominent */}
                       {startup.todayRank && (
-                        <div className="text-center bg-orange-100 rounded-lg px-4 py-2">
-                          <div className="text-2xl font-bold text-orange-600">
+                        <div className={cn(
+                          "text-center rounded-xl px-5 py-3 shadow-sm",
+                          startup.todayRank <= 3
+                            ? "bg-gradient-to-br from-yellow-400 to-orange-500 text-white"
+                            : "bg-orange-100 text-orange-700"
+                        )}>
+                          <div className="text-3xl font-bold">
                             #{startup.todayRank}
                           </div>
-                          <div className="text-xs text-orange-600">TODAY</div>
+                          <div className={cn(
+                            "text-xs font-semibold",
+                            startup.todayRank <= 3 ? "text-yellow-100" : "text-orange-600"
+                          )}>
+                            {startup.todayRank === 1 ? '🏆 TODAY' : 'TODAY'}
+                          </div>
                         </div>
                       )}
                     </div>
 
-                    {/* Badges */}
+                    {/* Badges Row */}
                     <div className="flex items-center gap-2 mt-4 flex-wrap">
                       {startup.verificationStatus === 'VERIFIED' && (
-                        <Badge
-                          variant="outline"
-                          className="bg-green-50 text-green-700 border-green-200"
-                        >
+                        <Badge className="bg-green-500 text-white hover:bg-green-600">
                           <CheckCircle className="h-3 w-3 mr-1" />
-                          Verified
+                          Verified Revenue
                         </Badge>
                       )}
                       <Badge className={cn('text-white', stageConfig.color)}>
                         {stageConfig.emoji} {stageConfig.label}
                       </Badge>
                       {isForSale && startup.askingPrice && (
-                        <Badge
-                          variant="outline"
-                          className="bg-blue-50 text-blue-700 border-blue-200"
-                        >
-                          FOR SALE
+                        <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
+                          💰 FOR SALE · ${(startup.askingPrice / 1000).toFixed(0)}K
                         </Badge>
                       )}
                     </div>
+                  </div>
+                </div>
 
+                {/* Engagement Stats Bar - Quick glance */}
+                <div className="flex items-center gap-6 mt-6 pt-4 border-t">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-orange-100 rounded-lg">
+                      <ChevronUp className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold">{upvoteCount}</div>
+                      <div className="text-xs text-muted-foreground">Upvotes</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-blue-100 rounded-lg">
+                      <MessageSquare className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold">{transformedComments.length}</div>
+                      <div className="text-xs text-muted-foreground">Comments</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-purple-100 rounded-lg">
+                      <Target className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold">{startup._count.guesses}</div>
+                      <div className="text-xs text-muted-foreground">Guesses</div>
+                    </div>
+                  </div>
+                  {isForSale && (
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-green-100 rounded-lg">
+                        <Eye className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold">{interestCount}</div>
+                        <div className="text-xs text-muted-foreground">Interested</div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Categories */}
+                  <div className="ml-auto flex items-center gap-2">
+                    {startup.categories.slice(0, 3).map((cat) => (
+                      <Link key={cat} href={`/category/${cat.toLowerCase()}`}>
+                        <Badge variant="outline" className="hover:bg-muted cursor-pointer">
+                          #{cat}
+                        </Badge>
+                      </Link>
+                    ))}
                   </div>
                 </div>
               </CardContent>
@@ -450,41 +522,56 @@ export default function StartupDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Founder Note - The Story Asset ⭐ */}
+            {/* ============================================ */}
+            {/* FOUNDER NOTE - The Story Asset ⭐           */}
+            {/* Critical: This is a trust/emotional anchor */}
+            {/* ============================================ */}
             {(startup.founderNote || startup.saleReason) && (
-              <Card className="border-l-4 border-l-orange-500 bg-gradient-to-r from-orange-50/50 to-white">
+              <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 shadow-md">
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
-                    <div className="p-2 bg-orange-100 rounded-full">
-                      <Quote className="h-5 w-5 text-orange-600" />
+                    {/* Quote Icon with glow */}
+                    <div className="p-3 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl shadow-lg shadow-orange-200">
+                      <Quote className="h-6 w-6 text-white" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-3">
-                        <h3 className="font-semibold text-lg">
-                          {isForSale ? "Why I'm Selling" : "Founder's Note"}
+                      {/* Header with Story badge */}
+                      <div className="flex items-center gap-3 mb-4">
+                        <h3 className="text-xl font-bold text-gray-900">
+                          {isForSale ? "💭 Why I'm Selling" : "💭 Founder's Note"}
                         </h3>
-                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                        <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs">
                           <Sparkles className="h-3 w-3 mr-1" />
                           Story
                         </Badge>
                       </div>
-                      <p className="text-muted-foreground leading-relaxed">
-                        {startup.founderNote || startup.saleReason}
-                      </p>
+                      {/* Story Content - larger text */}
+                      <blockquote className="text-gray-700 leading-relaxed text-base italic border-l-4 border-orange-300 pl-4">
+                        "{startup.founderNote || startup.saleReason}"
+                      </blockquote>
+                      {/* Founder Attribution */}
                       {startup.makers[0] && (
-                        <div className="flex items-center gap-2 mt-4 pt-4 border-t">
-                          <Avatar className="h-8 w-8">
+                        <div className="flex items-center gap-3 mt-5 pt-4 border-t border-orange-100">
+                          <Avatar className="h-10 w-10 ring-2 ring-orange-200">
                             <AvatarImage src={startup.makers[0].user.image || undefined} />
-                            <AvatarFallback>
+                            <AvatarFallback className="bg-orange-100 text-orange-700">
                               {(startup.makers[0].user.username || 'F').slice(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <div className="text-sm font-medium">
+                            <div className="font-semibold text-gray-900">
                               @{startup.makers[0].user.username}
                             </div>
-                            <div className="text-xs text-muted-foreground">Founder</div>
+                            <div className="text-xs text-orange-600 font-medium flex items-center gap-1">
+                              <Flame className="h-3 w-3" />
+                              Founder & Maker
+                            </div>
                           </div>
+                          <Link href={`/user/${startup.makers[0].user.username}`} className="ml-auto">
+                            <Button variant="outline" size="sm" className="text-xs border-orange-200 hover:bg-orange-50">
+                              View Profile
+                            </Button>
+                          </Link>
                         </div>
                       )}
                     </div>
@@ -774,14 +861,50 @@ export default function StartupDetailPage() {
               )}
             </Tabs>
 
-            {/* Discussion Section - Always Visible */}
-            <Card id="discussion-section">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-blue-500" />
-                  Discussion
-                  <Badge variant="secondary">{transformedComments.length}</Badge>
-                </CardTitle>
+            {/* ============================================ */}
+            {/* COMMUNITY SECTION - Discussion Hub          */}
+            {/* Founder comments are pinned at top          */}
+            {/* ============================================ */}
+            <Card id="discussion-section" className="border-t-4 border-t-blue-500">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Users className="h-5 w-5 text-blue-600" />
+                    </div>
+                    Community
+                    <Badge className="bg-blue-100 text-blue-700">{transformedComments.length}</Badge>
+                  </CardTitle>
+                  {/* Role Legend */}
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                      Founder
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                      Top Guesser
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      Buyer
+                    </span>
+                  </div>
+                </div>
+                {/* Founder active indicator */}
+                {startup.makers[0] && (
+                  <div className="flex items-center gap-2 mt-3 p-2 bg-orange-50 rounded-lg border border-orange-100">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={startup.makers[0].user.image || undefined} />
+                      <AvatarFallback className="text-xs bg-orange-200 text-orange-700">
+                        {(startup.makers[0].user.username || 'F').slice(0, 1)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs text-orange-700">
+                      <span className="font-medium">@{startup.makers[0].user.username}</span> is the founder. Their comments are pinned.
+                    </span>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <CommentSection

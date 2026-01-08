@@ -12,7 +12,7 @@ import { Comment } from '@/types';
 import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
 
-// Badge types for comment authors
+// Badge types for comment authors - Role System
 type AuthorBadgeType = 'founder' | 'buyer' | 'guesser' | 'top_guesser' | 'verified_buyer' | 'supporter';
 
 interface AuthorBadge {
@@ -20,44 +20,57 @@ interface AuthorBadge {
   label: string;
   icon: React.ReactNode;
   className: string;
+  dotColor: string; // Indicator dot color
 }
 
+// Enhanced badge styling for Role System visibility
 const AUTHOR_BADGES: Record<AuthorBadgeType, AuthorBadge> = {
   founder: {
     type: 'founder',
     label: 'Founder',
-    icon: <Award className="h-3 w-3" />,
-    className: 'bg-orange-100 text-orange-700 border-orange-200',
+    icon: <Award className="h-3.5 w-3.5" />,
+    // Premium gradient styling for Founder - VIP role
+    className: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white border-orange-400 shadow-sm shadow-orange-200 font-semibold',
+    dotColor: 'bg-orange-500',
   },
   buyer: {
     type: 'buyer',
     label: 'Buyer',
-    icon: <ShoppingBag className="h-3 w-3" />,
-    className: 'bg-green-100 text-green-700 border-green-200',
+    icon: <ShoppingBag className="h-3.5 w-3.5" />,
+    // Green for buyers (deal-focused)
+    className: 'bg-gradient-to-r from-green-500 to-emerald-500 text-white border-green-400 shadow-sm shadow-green-200 font-medium',
+    dotColor: 'bg-green-500',
   },
   guesser: {
     type: 'guesser',
     label: 'Guesser',
-    icon: <Target className="h-3 w-3" />,
-    className: 'bg-purple-100 text-purple-700 border-purple-200',
+    icon: <Target className="h-3.5 w-3.5" />,
+    // Purple for guessers
+    className: 'bg-purple-100 text-purple-700 border-purple-300',
+    dotColor: 'bg-purple-500',
   },
   top_guesser: {
     type: 'top_guesser',
-    label: 'Top Guesser',
-    icon: <Target className="h-3 w-3" />,
-    className: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    label: '🎯 Top Guesser',
+    icon: <Target className="h-3.5 w-3.5" />,
+    // Gold gradient for Top Guesser - Elite role
+    className: 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-yellow-400 shadow-sm shadow-yellow-200 font-semibold',
+    dotColor: 'bg-yellow-500',
   },
   verified_buyer: {
     type: 'verified_buyer',
-    label: 'Verified Buyer',
-    icon: <ShoppingBag className="h-3 w-3" />,
-    className: 'bg-blue-100 text-blue-700 border-blue-200',
+    label: '✓ Verified Buyer',
+    icon: <ShoppingBag className="h-3.5 w-3.5" />,
+    // Blue for verified buyers
+    className: 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-blue-400 shadow-sm shadow-blue-200 font-medium',
+    dotColor: 'bg-blue-500',
   },
   supporter: {
     type: 'supporter',
     label: 'Supporter',
-    icon: <Award className="h-3 w-3" />,
-    className: 'bg-pink-100 text-pink-700 border-pink-200',
+    icon: <Award className="h-3.5 w-3.5" />,
+    className: 'bg-pink-100 text-pink-700 border-pink-300',
+    dotColor: 'bg-pink-500',
   },
 };
 
@@ -133,19 +146,31 @@ function CommentItem({ comment, authorBadges = [], isReply = false, isPinned = f
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-sm hover:text-orange-600 cursor-pointer">
+              {/* Role Indicator Dot - shows primary role color */}
+              {authorBadges.length > 0 && (
+                <div className={cn(
+                  'w-2.5 h-2.5 rounded-full',
+                  AUTHOR_BADGES[authorBadges[0]]?.dotColor || 'bg-gray-400'
+                )} />
+              )}
+
+              <span className={cn(
+                'font-semibold text-sm hover:text-orange-600 cursor-pointer',
+                // Founder name gets special styling
+                authorBadges.includes('founder') && 'text-orange-700'
+              )}>
                 @{comment.user.username}
               </span>
 
               {/* Pinned Badge */}
               {isPinned && (
-                <Badge variant="outline" className="text-[10px] gap-1 py-0 h-5 bg-orange-50 text-orange-600 border-orange-200">
+                <Badge variant="outline" className="text-[10px] gap-1 py-0 h-5 bg-orange-50 text-orange-600 border-orange-200 animate-pulse">
                   <Pin className="h-3 w-3" />
                   Pinned
                 </Badge>
               )}
 
-              {/* Author Badges */}
+              {/* Author Badges - More prominent styling */}
               {authorBadges.map((badgeType) => {
                 const badge = AUTHOR_BADGES[badgeType];
                 if (!badge) return null;
@@ -153,7 +178,10 @@ function CommentItem({ comment, authorBadges = [], isReply = false, isPinned = f
                   <Badge
                     key={badgeType}
                     variant="outline"
-                    className={cn('text-[10px] gap-1 py-0 h-5', badge.className)}
+                    className={cn(
+                      'text-[11px] gap-1.5 py-0.5 h-6 px-2',
+                      badge.className
+                    )}
                   >
                     {badge.icon}
                     {badge.label}
