@@ -1,28 +1,28 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Zap, TrendingUp, MessageSquare, Gamepad2, CheckCircle, DollarSign, Clock, Shield, Users, UserPlus, Sparkles } from 'lucide-react';
+import { ArrowLeft, Zap, TrendingUp, MessageSquare, Gamepad2, CheckCircle, DollarSign, Clock, Shield, UserPlus, Camera } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-// Score factor definitions - v4.0 EventLog-Based Intent Signals
+// Score factor definitions - v5.0 Snapshot-Based with Daily Cron
 const SCORE_FACTORS = [
   {
     id: 'upvotes',
     icon: TrendingUp,
     label: 'Upvotes',
-    weight: '× 1',
+    weight: '× 2',
     color: 'text-orange-500',
     bgColor: 'bg-orange-50',
-    description: 'Light interest signal — shows the product caught someone\'s attention.',
+    description: 'Basic engagement signal — shows the product caught someone\'s attention.',
   },
   {
     id: 'comments',
     icon: MessageSquare,
     label: 'Comments',
-    weight: '× 2',
+    weight: '× 3',
     color: 'text-blue-500',
     bgColor: 'bg-blue-50',
     description: 'Community participation signals genuine engagement and discussion.',
@@ -31,43 +31,34 @@ const SCORE_FACTORS = [
     id: 'guesses',
     icon: Gamepad2,
     label: 'Guess Participation',
-    weight: '× 1.5',
+    weight: '× 6',
     color: 'text-purple-500',
     bgColor: 'bg-purple-50',
-    description: 'Revenue guessing shows market curiosity about the business.',
-  },
-  {
-    id: 'express-interest',
-    icon: Users,
-    label: 'Express Interest',
-    weight: '× 4',
-    color: 'text-green-500',
-    bgColor: 'bg-green-50',
-    description: 'Anonymous buyer signal — indicates potential acquisition interest.',
+    description: 'Revenue guessing shows deep market curiosity about the business.',
   },
   {
     id: 'request-intro',
     icon: UserPlus,
     label: 'Request Intro',
-    weight: '× 8',
+    weight: '× 12',
     color: 'text-emerald-600',
     bgColor: 'bg-emerald-50',
-    description: 'Strong acquisition intent — the highest weighted signal. Logged as INTRO_REQUEST_CREATED.',
+    description: 'Strong acquisition intent — the highest weighted signal. Only verified buyers can request.',
   },
   {
     id: 'intro-accepted',
     icon: CheckCircle,
     label: 'Intro Accepted',
-    weight: '× 12',
+    weight: '+ 8 bonus',
     color: 'text-teal-600',
     bgColor: 'bg-teal-50',
-    description: 'Founder accepted buyer intro — active deal signal.',
+    description: 'Founder accepted buyer intro — additional bonus for active deal progress.',
   },
   {
     id: 'verified',
     icon: CheckCircle,
     label: 'Verified Revenue',
-    weight: '× 1.2',
+    weight: '× 1.15',
     color: 'text-blue-500',
     bgColor: 'bg-blue-50',
     description: 'Trust multiplier for Stripe-connected verified revenue.',
@@ -85,23 +76,27 @@ const SCORE_FACTORS = [
     id: 'recency',
     icon: Clock,
     label: 'Recency Decay',
-    weight: '48h half-life',
+    weight: '36h half-life',
     color: 'text-amber-500',
     bgColor: 'bg-amber-50',
-    description: 'Recent activity counts more. Older spikes fade with exponential decay.',
+    description: 'Recent activity counts more. Older spikes fade faster with 36-hour half-life.',
   },
   {
-    id: 'founder',
-    icon: Sparkles,
-    label: 'Founder Active',
-    weight: '+ 3',
-    color: 'text-pink-500',
-    bgColor: 'bg-pink-50',
-    description: 'Bonus when founder participates in comments.',
+    id: 'snapshot',
+    icon: Camera,
+    label: 'Daily Snapshot',
+    weight: 'Cron 00:00 UTC',
+    color: 'text-indigo-500',
+    bgColor: 'bg-indigo-50',
+    description: 'Scores are recalculated daily and stored in TrendingSnapshot for consistent ranking.',
   },
 ];
 
 const ANTI_SPAM_MEASURES = [
+  {
+    title: 'Verified Buyers Only',
+    description: 'Only approved buyers can request intros — the highest-impact signal requires verification.',
+  },
   {
     title: 'Same User Actions',
     description: 'Multiple actions from the same user don\'t stack — only unique signals count.',
@@ -111,12 +106,8 @@ const ANTI_SPAM_MEASURES = [
     description: 'Accounts less than 24 hours old have 50% reduced impact.',
   },
   {
-    title: 'Anomaly Detection',
-    description: 'Unusual activity spikes trigger automatic review.',
-  },
-  {
-    title: 'Verified-Only Multiplier',
-    description: 'Only Stripe-verified products receive the trust multiplier.',
+    title: 'Daily Snapshot Stability',
+    description: 'Scores update once daily, preventing real-time manipulation attempts.',
   },
 ];
 
@@ -138,11 +129,11 @@ export default function HowTrendingWorksPage() {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 rounded-full text-purple-700 text-sm font-medium mb-4">
             <Zap className="h-4 w-4" />
-            EventLog-Based v4.0
+            Snapshot-Based v5.0
           </div>
           <h1 className="text-4xl font-bold mb-4">How Trending Works</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Trending highlights listings with <strong>real buyer intent signals</strong> — tracked via EventLog for accuracy.
+            Trending highlights listings with <strong>real buyer intent signals</strong> — stored in daily snapshots for stable, manipulation-resistant ranking.
           </p>
         </div>
 
@@ -151,7 +142,7 @@ export default function HowTrendingWorksPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-purple-500" />
-              The Trending Formula v4.0 (EventLog-Based)
+              The Trending Formula v5.0 (Snapshot-Based)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -160,23 +151,23 @@ export default function HowTrendingWorksPage() {
 
 BaseScore = Σ (EventWeight × TimeDecay)  // From EventLog table
 
-EventLog Types & Weights:
-  UPVOTE           × 1
-  COMMENT          × 2
-  GUESS_SUBMIT     × 1.5
-  INTEREST_EXPRESS × 4
-  INTRO_REQUEST_CREATED  × 8   // High intent signal
-  INTRO_REQUEST_ACCEPTED × 12  // Deal in progress!
-  FOUNDER_REPLY    × 3
+EventLog Types & Weights (v5.0):
+  UPVOTE                  × 2
+  COMMENT                 × 3
+  GUESS_SUBMIT            × 6
+  INTRO_REQUEST_CREATED   × 12  // Verified buyers only!
+  INTRO_REQUEST_ACCEPTED  + 8   // Bonus on top
 
-TimeDecay = exp(-hours / 48)   // Per-event decay
+TimeDecay = exp(-hours / 36)   // 36-hour half-life (faster decay)
 TrustMult = VerifiedMult × StageMult
-  // Verified: × 1.2
+  // Verified: × 1.15
   // For Sale: × 1.1
-  // Sold: × 0.2`}</pre>
+  // Sold: × 0.2
+
+// Scores stored in TrendingSnapshot, updated daily at 00:00 UTC`}</pre>
             </div>
             <p className="text-sm text-muted-foreground mt-4 text-center">
-              All events logged to <code className="bg-gray-100 px-1 rounded">EventLog</code> table with timestamps. <strong>7-day rolling window</strong>.
+              Scores recalculated <strong>daily via Vercel Cron</strong> and stored in <code className="bg-gray-100 px-1 rounded">TrendingSnapshot</code> table.
             </p>
           </CardContent>
         </Card>
@@ -222,23 +213,23 @@ TrustMult = VerifiedMult × StageMult
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span><strong>Buyer intent matters most</strong> — Request Intro (× 8) is weighted highest because it represents real acquisition interest.</span>
+                <span><strong>Buyer intent matters most</strong> — Request Intro (× 12) is weighted highest because it represents real acquisition interest from verified buyers.</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span><strong>Recency + momentum</strong> — Recent activity counts more. Older spikes fade naturally with a 48-hour half-life.</span>
+                <span><strong>Faster decay, fresher content</strong> — 36-hour half-life ensures trending reflects current momentum, not past glory.</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span><strong>Trust multipliers</strong> — Verified revenue listings get a 20% boost. For-sale products get 10% extra visibility.</span>
+                <span><strong>Trust multipliers</strong> — Verified revenue listings get a 15% boost. For-sale products get 10% extra visibility.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span><strong>Daily snapshots</strong> — Scores update once daily, preventing real-time gaming and ensuring stable rankings.</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                 <span><strong>Sold products fade</strong> — Completed acquisitions drop to 20% score, making room for active opportunities.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span><strong>Founder participation rewarded</strong> — Active founder engagement in comments earns bonus points.</span>
               </li>
             </ul>
           </CardContent>
@@ -262,7 +253,7 @@ TrustMult = VerifiedMult × StageMult
               ))}
             </div>
             <p className="text-xs text-center text-muted-foreground mt-4">
-              New accounts (&lt;24h) have <strong>50% reduced impact</strong>. Same user actions don&apos;t stack.
+              New accounts (&lt;24h) have <strong>50% reduced impact</strong>. Only <strong>approved buyers</strong> can request intros.
             </p>
           </CardContent>
         </Card>
