@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDistanceToNow } from 'date-fns';
 
 interface TrendingStartup {
@@ -15,6 +16,14 @@ interface TrendingStartup {
   name: string;
   slug: string;
   upvoteCount: number;
+  trendScore?: number;
+  trendDetails?: {
+    upvotes7d: number;
+    comments7d: number;
+    guesses7d: number;
+    recencyBonus: number;
+  };
+  whyTrending?: string;
 }
 
 interface ForSaleStartup {
@@ -46,6 +55,7 @@ interface VerifiedStartup {
   name: string;
   slug: string;
   updatedAt: string;
+  lastVerifiedAt?: string;
 }
 
 function SidebarSkeleton() {
@@ -73,18 +83,17 @@ export function Sidebar() {
     async function fetchSidebarData() {
       setIsLoading(true);
       try {
-        const [trendingRes, forSaleRes, leaderboardRes, forumRes] = await Promise.all([
-          fetch('/api/startups?sort=upvotes&limit=5'),
+        const [trendingRes, forSaleRes, leaderboardRes, forumRes, verifiedRes] = await Promise.all([
+          fetch('/api/trending?limit=5&period=7d'),
           fetch('/api/startups?forSale=true&limit=3'),
           fetch('/api/leaderboard?limit=3'),
-          fetch('/api/forum?limit=2'),
+          fetch('/api/forum?limit=3'),
+          fetch('/api/startups?sort=latest&limit=3'),
         ]);
 
         if (trendingRes.ok) {
           const data = await trendingRes.json();
           setTrendingStartups(data.startups || []);
-          // Use same data for recently verified (already VERIFIED status from API)
-          setRecentlyVerified(data.startups?.slice(0, 3) || []);
         }
 
         if (forSaleRes.ok) {
@@ -100,6 +109,11 @@ export function Sidebar() {
         if (forumRes.ok) {
           const data = await forumRes.json();
           setForumThreads(data.threads || []);
+        }
+
+        if (verifiedRes.ok) {
+          const data = await verifiedRes.json();
+          setRecentlyVerified(data.startups || []);
         }
       } catch (error) {
         console.error('Error fetching sidebar data:', error);
@@ -122,30 +136,48 @@ export function Sidebar() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {isLoading ? (
-            <SidebarSkeleton />
-          ) : trendingStartups.length > 0 ? (
-            trendingStartups.map((startup, index) => (
-              <Link
-                key={startup.id}
-                href={`/startup/${startup.slug}`}
-                className="flex items-center justify-between hover:bg-muted/50 -mx-2 px-2 py-1 rounded-md transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-muted-foreground w-4">
-                    {index + 1}.
-                  </span>
-                  <span className="font-medium text-sm">{startup.name}</span>
+          <TooltipProvider>
+            {isLoading ? (
+              <SidebarSkeleton />
+            ) : trendingStartups.length > 0 ? (
+              trendingStartups.map((startup, index) => (
+                <div key={startup.id} className="flex items-center justify-between hover:bg-muted/50 -mx-2 px-2 py-1 rounded-md transition-colors">
+                  <Link
+                    href={`/startup/${startup.slug}`}
+                    className="flex items-center gap-2 flex-1"
+                  >
+                    <span className="text-sm font-medium text-muted-foreground w-4">
+                      {index + 1}.
+                    </span>
+                    <span className="font-medium text-sm">{startup.name}</span>
+                  </Link>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground cursor-help">
+                        <TrendingUp className="h-3 w-3" />
+                        {startup.trendScore ? Math.round(startup.trendScore) : startup.upvoteCount}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-[200px]">
+                      <p className="font-semibold text-xs mb-1">Why trending?</p>
+                      {startup.trendDetails ? (
+                        <div className="text-xs space-y-0.5">
+                          <p>{startup.trendDetails.upvotes7d} upvotes (×2)</p>
+                          <p>{startup.trendDetails.comments7d} comments (×3)</p>
+                          <p>{startup.trendDetails.guesses7d} guesses (×1)</p>
+                          <p>+{startup.trendDetails.recencyBonus.toFixed(1)} recency bonus</p>
+                        </div>
+                      ) : (
+                        <p className="text-xs">{startup.whyTrending || `${startup.upvoteCount} upvotes this week`}</p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <TrendingUp className="h-3 w-3" />
-                  {startup.upvoteCount}
-                </div>
-              </Link>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">No startups yet</p>
-          )}
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No startups yet</p>
+            )}
+          </TooltipProvider>
         </CardContent>
       </Card>
 

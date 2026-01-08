@@ -69,9 +69,14 @@ export function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
+            <Link href="/today">
+              <Button variant="ghost" size="sm">
+                Today
+              </Button>
+            </Link>
             <Link href="/">
               <Button variant="ghost" size="sm">
-                Launches
+                Browse
               </Button>
             </Link>
             <Link href="/for-sale">

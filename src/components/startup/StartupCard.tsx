@@ -6,23 +6,66 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Startup, StartupStage, STAGE_CONFIG } from '@/types';
+import { StartupStage, STAGE_CONFIG } from '@/types';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
-// Extended Startup type to match actual API response (Prisma schema)
-interface APIStartup extends Omit<Startup, 'verification' | 'saleDetails' | 'upvotes'> {
-  // Flat fields from Prisma schema
+// API Response type for Startup - more flexible than base Startup type
+interface APIStartup {
+  id: string;
+  name: string;
+  slug: string;
+  tagline: string;
+  description?: string;
+  logo: string | null;
+  website?: string;
+  screenshots?: string[];
+  videoUrl?: string;
+
+  // Revenue fields
   verificationStatus: string;
   verificationProvider?: string;
+  currentMRR: number;
+  growthMoM: number;
+  revenueAge?: number;
+
+  // Stage
+  stage: string;
   askingPrice?: number;
   saleMultiple?: number;
+  saleIncludes?: string[];
+  saleReason?: string;
+  sellabilityReasons?: string[];
+
+  // Engagement
   upvoteCount: number;
+  commentCount?: number;
+  guessCount?: number;
+  buyerInterestCount?: number;
+
+  // Meta
+  categories: string[];
+  createdAt: string | Date;
+  updatedAt?: string | Date;
+  launchDate?: string | Date | null;
+  todayRank?: number;
+
+  // Makers from API response
+  makers: Array<{
+    user: {
+      id: string;
+      name: string | null;
+      username: string | null;
+      image: string | null;
+    };
+  }>;
+
   // Prisma _count relation
   _count?: {
     comments: number;
     guesses: number;
     buyerInterests: number;
+    follows?: number;
   };
 }
 
@@ -84,7 +127,7 @@ export function StartupCard({ startup, showRank = false }: StartupCardProps) {
               {/* Logo */}
               <Link href={`/startup/${startup.slug}`}>
                 <Avatar className="h-12 w-12 rounded-lg cursor-pointer">
-                  <AvatarImage src={startup.logo} alt={startup.name} />
+                  <AvatarImage src={startup.logo || undefined} alt={startup.name} />
                   <AvatarFallback className="rounded-lg bg-gradient-to-br from-orange-400 to-pink-500 text-white font-bold">
                     {startup.name.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
@@ -186,6 +229,41 @@ export function StartupCard({ startup, showRank = false }: StartupCardProps) {
                       </span>
                     </Link>
                   ))}
+                </div>
+
+                {/* Quick Actions Row */}
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                  <Link href={`/startup/${startup.slug}#guess`}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs gap-1 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200"
+                    >
+                      <Gamepad2 className="h-3 w-3" />
+                      Guess MRR
+                    </Button>
+                  </Link>
+                  <Link href={`/startup/${startup.slug}#comments`}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs gap-1 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200"
+                    >
+                      <MessageSquare className="h-3 w-3" />
+                      Comment
+                    </Button>
+                  </Link>
+                  {isForSale && (
+                    <Link href={`/startup/${startup.slug}#interest`}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs gap-1 hover:bg-green-50 hover:text-green-700 hover:border-green-200"
+                      >
+                        Express Interest
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>

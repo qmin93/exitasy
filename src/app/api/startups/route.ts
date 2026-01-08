@@ -12,16 +12,24 @@ export async function GET(req: Request) {
     const stage = searchParams.get('stage');
     const forSale = searchParams.get('forSale') === 'true';
     const sort = searchParams.get('sort') || 'latest';
+    const category = searchParams.get('category');
+    const verifiedOnly = searchParams.get('verifiedOnly') !== 'false'; // Default to verified only
+    const minMRR = searchParams.get('minMRR') ? parseInt(searchParams.get('minMRR')!) : undefined;
+    const maxMRR = searchParams.get('maxMRR') ? parseInt(searchParams.get('maxMRR')!) : undefined;
+    const search = searchParams.get('search');
 
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: Record<string, unknown> = {
-      verificationStatus: 'VERIFIED',
-    };
+    const where: Record<string, unknown> = {};
 
+    // Verification filter
+    if (verifiedOnly) {
+      where.verificationStatus = 'VERIFIED';
+    }
+
+    // Stage filters
     if (forSale) {
-      // Filter for startups that are for sale
       where.OR = [
         { stage: 'FOR_SALE' },
         { stage: 'EXIT_READY' },
@@ -30,14 +38,63 @@ export async function GET(req: Request) {
       where.stage = stage;
     }
 
+    // Category filter
+    if (category) {
+      where.categories = {
+        contains: category,
+      };
+    }
+
+    // MRR range filter
+    if (minMRR !== undefined || maxMRR !== undefined) {
+      where.currentMRR = {};
+      if (minMRR !== undefined) {
+        (where.currentMRR as Record<string, number>).gte = minMRR;
+      }
+      if (maxMRR !== undefined) {
+        (where.currentMRR as Record<string, number>).lte = maxMRR;
+      }
+    }
+
+    // Search filter
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { tagline: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
     // Build orderBy
-    let orderBy: Record<string, string> = { createdAt: 'desc' };
-    if (sort === 'upvotes') {
-      orderBy = { upvoteCount: 'desc' };
-    } else if (sort === 'mrr') {
-      orderBy = { currentMRR: 'desc' };
-    } else if (sort === 'growth') {
-      orderBy = { growthMoM: 'desc' };
+    let orderBy: Record<string, string> | Record<string, string>[] = { createdAt: 'desc' };
+    switch (sort) {
+      case 'upvotes':
+      case 'trending':
+        orderBy = { upvoteCount: 'desc' };
+        break;
+      case 'mrr':
+      case 'highest_mrr':
+        orderBy = { currentMRR: 'desc' };
+        break;
+      case 'growth':
+      case 'highest_growth':
+        orderBy = { growthMoM: 'desc' };
+        break;
+      case 'newest':
+      case 'latest':
+        orderBy = { createdAt: 'desc' };
+        break;
+      case 'oldest':
+        orderBy = { createdAt: 'asc' };
+        break;
+      case 'most_guessed':
+        orderBy = { guessCount: 'desc' };
+        break;
+      case 'most_comments':
+        orderBy = { commentCount: 'desc' };
+        break;
+      default:
+        orderBy = { createdAt: 'desc' };
     }
 
     const [startups, total] = await Promise.all([
@@ -59,11 +116,13 @@ export async function GET(req: Request) {
               },
             },
           },
+          trendScore: true,
           _count: {
             select: {
               comments: true,
               guesses: true,
               buyerInterests: true,
+              follows: true,
             },
           },
         },
@@ -82,6 +141,14 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       startups: parsedStartups,
+      filters: {
+        stage,
+        category,
+        sort,
+        minMRR,
+        maxMRR,
+        search,
+      },
       pagination: {
         page,
         limit,
