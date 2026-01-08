@@ -17,11 +17,11 @@
   "crons": [
     {
       "path": "/api/cron/update-trends",
-      "schedule": "0 * * * *"
+      "schedule": "0 9 * * *"
     },
     {
       "path": "/api/cron/seed-forum",
-      "schedule": "0 9 * * *"
+      "schedule": "0 10 * * *"
     }
   ]
 }
