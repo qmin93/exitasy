@@ -247,7 +247,7 @@ export function Sidebar() {
         </CardContent>
       </Card>
 
-      {/* Hot Deals This Week - Highlighted when deals exist */}
+      {/* Hot Deal Signals - Highest buyer intent */}
       <Card className={hasHotDeals ? 'border-green-200 bg-green-50/30' : ''}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center justify-between text-base">
@@ -255,12 +255,15 @@ export function Sidebar() {
               <div className={`p-1.5 rounded-lg ${hasHotDeals ? 'bg-green-100' : 'bg-muted'}`}>
                 <DollarSign className={`h-4 w-4 ${hasHotDeals ? 'text-green-600' : 'text-green-500'}`} />
               </div>
-              <span>Hot Deals</span>
+              <span>Hot Deal Signals</span>
             </div>
             {hasHotDeals && (
               <Badge className="bg-green-100 text-green-700 text-[10px]">{forSaleStartups.length} LIVE</Badge>
             )}
           </CardTitle>
+          <p className="text-[10px] text-muted-foreground -mt-1">
+            Highest buyer intent this week
+          </p>
         </CardHeader>
         <CardContent className="space-y-2 pt-0">
           {isLoading ? (
@@ -273,7 +276,7 @@ export function Sidebar() {
                   href={`/startup/${startup.slug}`}
                   className="flex items-center justify-between hover:bg-green-100/50 -mx-2 px-2 py-1.5 rounded-md transition-colors"
                 >
-                  <span className="font-medium text-sm truncate max-w-[140px]">{startup.name}</span>
+                  <span className="font-medium text-sm truncate max-w-[120px]">{startup.name}</span>
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-bold text-green-700">
                       ${((startup.askingPrice || 0) / 1000).toFixed(0)}K
@@ -284,6 +287,16 @@ export function Sidebar() {
                   </div>
                 </Link>
               ))}
+              {/* Summary stats */}
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-2 border-t mt-2">
+                <span className="flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  Intro requests
+                </span>
+                <span className="flex items-center gap-1">
+                  Buyers watching
+                </span>
+              </div>
               <Link
                 href="/for-sale"
                 className="text-xs text-green-600 hover:text-green-700 transition-colors block mt-1 text-center"
@@ -349,7 +362,7 @@ export function Sidebar() {
               ))}
               <div className="pt-2 border-t mt-2">
                 <p className="text-[10px] text-muted-foreground text-center">
-                  Buyers who expressed interest in startups this week
+                  Shown when a buyer expresses interest this week (privacy-safe).
                 </p>
               </div>
             </>

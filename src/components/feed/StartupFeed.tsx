@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Rocket, Calendar, TrendingUp, Flame, Clock, Trophy, Zap, ArrowRight, Sparkles, HelpCircle } from 'lucide-react';
+import { Rocket, Calendar, TrendingUp, Flame, Clock, Trophy, ArrowRight, Sparkles, HelpCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { StartupCard } from '@/components/startup/StartupCard';
 import { StartupFeedSkeleton } from '@/components/startup/StartupCardSkeleton';
 import { FeedFilter } from '@/types';
@@ -205,32 +204,24 @@ export function StartupFeed() {
           {/* Today Empty State + Trending as Main */}
           {todayIsEmpty && (
             <>
-              {/* Gamified CTA */}
-              <Card className="border-2 border-dashed border-orange-300 bg-gradient-to-br from-orange-50 to-amber-50">
-                <CardContent className="py-8 px-6 text-center">
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-orange-500 mb-4 animate-pulse">
-                    <Trophy className="h-7 w-7 text-white" />
+              {/* Compact CTA - Smaller and more subtle */}
+              <div className="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <Trophy className="h-5 w-5 text-orange-600" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2">
-                    Be Today&apos;s #1 Launch
-                  </h3>
-                  <p className="text-muted-foreground mb-3 max-w-md mx-auto text-sm">
-                    No products launched today yet. Your startup could be featured at the top!
-                  </p>
-                  <div className="inline-flex items-center gap-2 text-xs text-orange-600 font-medium mb-4 bg-orange-100 px-3 py-1.5 rounded-full">
-                    <Zap className="h-3 w-3" />
-                    First launch today gets featured for 24 hours
+                  <div>
+                    <p className="font-medium text-sm">No launches today yet</p>
+                    <p className="text-xs text-muted-foreground">Be first · Get featured for 24h</p>
                   </div>
-                  <div className="flex flex-col items-center gap-3">
-                    <Link href="/submit">
-                      <Button size="lg" className="bg-orange-500 hover:bg-orange-600 gap-2">
-                        <Rocket className="h-5 w-5" />
-                        Launch Now
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+                <Link href="/submit">
+                  <Button size="sm" className="bg-orange-500 hover:bg-orange-600 gap-1.5">
+                    <Rocket className="h-4 w-4" />
+                    Launch Now
+                  </Button>
+                </Link>
+              </div>
 
               {/* Trending This Week as Main Section */}
               {trendingStartups.length > 0 && (
@@ -392,7 +383,7 @@ export function StartupFeed() {
       <div id="newsletter" className="bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg p-6 text-white">
         <h3 className="font-semibold text-lg mb-2">Get the best of Exitasy in your inbox</h3>
         <p className="text-sm opacity-90 mb-4">
-          Weekly digest of trending startups, hot deals, and exit stories.
+          Weekly: top deals + buyer signals + exits
         </p>
         <div className="flex gap-2">
           <input

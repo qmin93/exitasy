@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronUp, MessageSquare, Gamepad2, TrendingUp, CheckCircle, ArrowRight, Flame, DollarSign, Zap, Sparkles, Eye, HelpCircle, Users } from 'lucide-react';
+import { ChevronUp, MessageSquare, Gamepad2, TrendingUp, CheckCircle, ArrowRight, DollarSign, Zap, HelpCircle, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -98,6 +98,7 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
   const [upvoted, setUpvoted] = useState(false);
   const [upvoteCount, setUpvoteCount] = useState(startup.upvoteCount || 0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   // Get numeric trend score
   const trendScoreValue = getTrendScoreValue(startup.trendScore);
@@ -116,12 +117,15 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
 
     // Trigger animation
     setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 300);
+    setTimeout(() => setIsAnimating(false), 600);
 
     if (upvoted) {
       setUpvoteCount((prev) => prev - 1);
     } else {
       setUpvoteCount((prev) => prev + 1);
+      // Show toast on upvote
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
     }
     setUpvoted(!upvoted);
   };
@@ -174,10 +178,19 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
 
   return (
     <Card className={cn(
-      "hover:shadow-lg transition-all duration-200 group overflow-hidden",
+      "hover:shadow-lg transition-all duration-200 group overflow-hidden relative",
       getCardStyles(),
       isAnimating && "scale-[1.02] shadow-lg"
     )}>
+      {/* Toast notification */}
+      {showToast && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="bg-purple-600 text-white text-xs font-medium px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
+            <CheckCircle className="h-3.5 w-3.5" />
+            Upvoted · affects trending
+          </div>
+        </div>
+      )}
       <CardContent className="p-0">
         <div className="flex">
           {/* Product Hunt Style Upvote Button - LEFT COLUMN */}
@@ -201,14 +214,23 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                 </span>
               </div>
             )}
+            {/* Confetti effect on upvote */}
+            {isAnimating && upvoted && (
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                  <span className="absolute animate-ping h-8 w-8 rounded-full bg-purple-400 opacity-50"></span>
+                  <span className="absolute animate-ping delay-75 h-6 w-6 rounded-full bg-orange-400 opacity-50"></span>
+                </div>
+              </div>
+            )}
             <ChevronUp className={cn(
-              'h-7 w-7 transition-transform duration-200',
+              'h-7 w-7 transition-transform duration-300',
               upvoted && 'animate-bounce',
-              isAnimating && '-translate-y-1',
+              isAnimating && '-translate-y-2 scale-125',
               effectiveVariant === 'trending' && !upvoted && 'h-8 w-8'
             )} />
             <span className={cn(
-              'text-xl font-bold mt-1 transition-all duration-200',
+              'text-xl font-bold mt-1 transition-all duration-300',
               upvoted ? 'text-white' : effectiveVariant === 'sale' ? 'text-gray-500' : 'text-gray-900',
               isAnimating && 'scale-125',
               effectiveVariant === 'trending' && !upvoted && 'text-2xl text-purple-700'
@@ -253,20 +275,14 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                   </p>
                 </Link>
 
-                {/* Badges Row */}
+                {/* Badges Row - Color Rules:
+                    - Status (Stage): green/yellow/orange/blue/purple (from STAGE_CONFIG)
+                    - Verified: blue outline (trust indicator)
+                    - Price/Deal: cyan/teal (money related)
+                    - Category: gray text only (see below)
+                */}
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  {/* Verified Badge */}
-                  {startup.verificationStatus === 'VERIFIED' && (
-                    <Badge
-                      variant="outline"
-                      className="text-xs bg-green-50 text-green-700 border-green-200"
-                    >
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Verified
-                    </Badge>
-                  )}
-
-                  {/* Stage Badge */}
+                  {/* Stage Badge - Primary status indicator */}
                   <Badge
                     className={cn(
                       'text-xs text-white',
@@ -276,13 +292,24 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                     {stageConfig.emoji} {stageConfig.label}
                   </Badge>
 
-                  {/* For Sale Price */}
-                  {isForSale && startup.askingPrice && (
+                  {/* Verified Badge - Blue for trust/verification */}
+                  {startup.verificationStatus === 'VERIFIED' && (
                     <Badge
                       variant="outline"
                       className="text-xs bg-blue-50 text-blue-700 border-blue-200"
                     >
-                      FOR SALE · ${(startup.askingPrice / 1000).toFixed(0)}K · {startup.saleMultiple || 0}x
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Verified
+                    </Badge>
+                  )}
+
+                  {/* For Sale Price - Cyan/Teal for deal info */}
+                  {isForSale && startup.askingPrice && (
+                    <Badge
+                      variant="outline"
+                      className="text-xs bg-cyan-50 text-cyan-700 border-cyan-200"
+                    >
+                      ${(startup.askingPrice / 1000).toFixed(0)}K · {startup.saleMultiple || 0}x
                     </Badge>
                   )}
                 </div>
@@ -356,17 +383,30 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                             <ArrowRight className="h-4 w-4" />
                           </Button>
                         </Link>
-                        <Link href={`/startup/${startup.slug}?tab=deal`}>
-                          <Button
-                            variant="outline"
-                            size="default"
-                            className="h-9 px-4 text-sm gap-1.5 border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 font-medium"
-                          >
-                            <Users className="h-4 w-4" />
-                            Request Intro
-                          </Button>
-                        </Link>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link href={`/startup/${startup.slug}?tab=deal`}>
+                                <Button
+                                  variant="outline"
+                                  size="default"
+                                  className="h-9 px-4 text-sm gap-1.5 border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 font-medium"
+                                >
+                                  <Users className="h-4 w-4" />
+                                  Request Intro
+                                </Button>
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-xs">
+                              Buyer-only · Founder replies in 48h
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
+                      {/* Buyer-only notice */}
+                      <p className="text-[10px] text-muted-foreground text-right">
+                        Buyer-only · Founder replies in 48h
+                      </p>
                       {/* ROW 2: SECONDARY - Community actions */}
                       <div className="flex items-center gap-2">
                         <Link href={`/startup/${startup.slug}#guess`}>
@@ -415,18 +455,6 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                             {startup.upvoteCount} upvotes · {startup._count?.guesses ?? 0} guesses
                           </span>
                         )}
-                        {/* View Details */}
-                        <Link href={`/startup/${startup.slug}`} className="ml-auto flex-shrink-0">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs gap-1 font-medium"
-                          >
-                            <Eye className="h-3 w-3" />
-                            Details
-                            <ArrowRight className="h-3 w-3" />
-                          </Button>
-                        </Link>
                       </div>
                       {/* ROW 2: SECONDARY - Community actions + Why watch hook */}
                       <div className="flex items-center gap-2">

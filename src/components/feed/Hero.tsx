@@ -74,6 +74,9 @@ export function Hero() {
           <p className="text-xl text-muted-foreground mb-2">
             Verified revenue · Buyer discovery · Deal signals
           </p>
+          <p className="text-base font-medium text-purple-600 mb-1">
+            Not likes. Real buyer actions.
+          </p>
           <p className="text-sm text-muted-foreground mb-6">
             The only platform where real MRR gets you noticed by serious buyers.
           </p>
@@ -104,25 +107,30 @@ export function Hero() {
           </TooltipProvider>
 
           {/* Primary CTA - Submit Startup */}
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <Link href="/submit">
-              <Button
-                size="lg"
-                className="h-12 px-8 text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-200 gap-2"
-              >
-                <Rocket className="h-5 w-5" />
-                Submit Your Startup
-              </Button>
-            </Link>
-            <Link href="/for-sale">
-              <Button
-                variant="outline"
-                size="lg"
-                className="h-12 px-6 text-base border-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700"
-              >
-                Browse Deals
-              </Button>
-            </Link>
+          <div className="flex flex-col items-center gap-2 mb-8">
+            <div className="flex items-center justify-center gap-3">
+              <Link href="/submit">
+                <Button
+                  size="lg"
+                  className="h-12 px-8 text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-200 gap-2"
+                >
+                  <Rocket className="h-5 w-5" />
+                  Submit Your Startup
+                </Button>
+              </Link>
+              <Link href="/for-sale">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="h-12 px-6 text-base border-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700"
+                >
+                  Browse Deals
+                </Button>
+              </Link>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Get discovered by verified buyers.
+            </p>
           </div>
 
           {/* Search Bar */}
