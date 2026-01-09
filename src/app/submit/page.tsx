@@ -146,6 +146,9 @@ function SubmitStartupContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConnecting, setIsConnecting] = useState<'stripe' | 'paddle' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showPaddleModal, setShowPaddleModal] = useState(false);
+  const [paddleApiKey, setPaddleApiKey] = useState('');
+  const [draftStartupId, setDraftStartupId] = useState<string | null>(null);
 
   // Verification state
   const [verificationStatus, setVerificationStatus] = useState<{
@@ -330,21 +333,110 @@ function SubmitStartupContent() {
     }
   };
 
-  // Handle Paddle Connect OAuth
+  // Handle Paddle Connect - opens modal for API key
   const handlePaddleConnect = async () => {
+    setError(null);
+
+    // First create draft startup if needed
+    if (!draftStartupId) {
+      try {
+        const draftRes = await fetch('/api/startups', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name || 'Draft Startup',
+            tagline: formData.tagline || 'Draft',
+            description: formData.description || 'Draft startup for verification',
+            website: formData.website || 'https://example.com',
+            categories: formData.categories.length > 0 ? formData.categories : ['SaaS'],
+            stage: 'MAKING_MONEY',
+            isDraft: true,
+          }),
+        });
+
+        if (!draftRes.ok) {
+          const data = await draftRes.json();
+          throw new Error(data.message || 'Failed to create draft startup');
+        }
+
+        const draftStartup = await draftRes.json();
+        setDraftStartupId(draftStartup.id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to prepare for verification');
+        return;
+      }
+    }
+
+    setShowPaddleModal(true);
+  };
+
+  // Submit Paddle API Key for verification
+  const handlePaddleSubmit = async () => {
+    if (!paddleApiKey.trim()) {
+      setError('Please enter your Paddle API key');
+      return;
+    }
+
     setIsConnecting('paddle');
     setError(null);
 
     try {
-      // Paddle uses a different OAuth flow
-      // For now, show a message that it's coming soon
-      // TODO: Implement Paddle OAuth when ready
-      setTimeout(() => {
-        setError('Paddle integration coming soon! Please use Stripe or manual verification.');
-        setIsConnecting(null);
-      }, 1000);
+      // Create draft startup if not already created
+      let startupId = draftStartupId;
+
+      if (!startupId) {
+        const draftRes = await fetch('/api/startups', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name || 'Draft Startup',
+            tagline: formData.tagline || 'Draft',
+            description: formData.description || 'Draft startup for verification',
+            website: formData.website || 'https://example.com',
+            categories: formData.categories.length > 0 ? formData.categories : ['SaaS'],
+            stage: 'MAKING_MONEY',
+            isDraft: true,
+          }),
+        });
+
+        if (!draftRes.ok) {
+          const data = await draftRes.json();
+          throw new Error(data.message || 'Failed to create draft startup');
+        }
+
+        const draftStartup = await draftRes.json();
+        startupId = draftStartup.id;
+        setDraftStartupId(startupId);
+      }
+
+      // Call Paddle verification API
+      const res = await fetch('/api/verify/paddle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startupId,
+          apiKey: paddleApiKey,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to verify Paddle account');
+      }
+
+      // Success!
+      setVerificationStatus({
+        verified: true,
+        provider: 'paddle',
+        mrr: data.mrr,
+        growthMoM: data.growthMoM,
+      });
+      setShowPaddleModal(false);
+      setPaddleApiKey('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect Paddle');
+    } finally {
       setIsConnecting(null);
     }
   };
@@ -802,6 +894,75 @@ function SubmitStartupContent() {
                     </div>
                   )}
                 </div>
+
+                {/* Paddle API Key Modal */}
+                {showPaddleModal && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <Card className="w-full max-w-md mx-4">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <CreditCard className="h-5 w-5 text-blue-600" />
+                          Connect Paddle
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <p className="text-sm text-blue-800">
+                            Enter your Paddle API key to verify your revenue. We only need read access.
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Paddle API Key</label>
+                          <Input
+                            type="password"
+                            placeholder="pdl_..."
+                            value={paddleApiKey}
+                            onChange={(e) => setPaddleApiKey(e.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Find it in Paddle Dashboard → Developer Tools → Authentication
+                          </p>
+                        </div>
+
+                        {error && (
+                          <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                            <p className="text-sm text-red-800">{error}</p>
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => {
+                              setShowPaddleModal(false);
+                              setPaddleApiKey('');
+                              setError(null);
+                            }}
+                            disabled={isConnecting === 'paddle'}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                            onClick={handlePaddleSubmit}
+                            disabled={isConnecting === 'paddle' || !paddleApiKey.trim()}
+                          >
+                            {isConnecting === 'paddle' ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Verifying...
+                              </>
+                            ) : (
+                              'Verify Revenue'
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
               </>
             )}
 
