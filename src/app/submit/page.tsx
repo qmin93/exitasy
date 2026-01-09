@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
   ArrowLeft,
@@ -13,6 +13,8 @@ import {
   FileText,
   Rocket,
   Loader2,
+  CheckCircle,
+  ExternalLink,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { STAGE_CONFIG, StartupStage } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -136,12 +138,61 @@ const FOUNDER_NOTE_SECTIONS = [
   },
 ];
 
-export default function SubmitStartupPage() {
+function SubmitStartupContent() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+  const { status } = useSession();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConnecting, setIsConnecting] = useState<'stripe' | 'paddle' | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Verification state
+  const [verificationStatus, setVerificationStatus] = useState<{
+    verified: boolean;
+    provider: 'stripe' | 'paddle' | 'manual' | null;
+    mrr: number | null;
+    growthMoM: number | null;
+  }>({
+    verified: false,
+    provider: null,
+    mrr: null,
+    growthMoM: null,
+  });
+
+  // Check for OAuth callback results
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const mrr = searchParams.get('mrr');
+    const growth = searchParams.get('growth');
+    const errorParam = searchParams.get('error');
+
+    if (success === 'verified' && mrr) {
+      setVerificationStatus({
+        verified: true,
+        provider: 'stripe',
+        mrr: parseInt(mrr),
+        growthMoM: growth ? parseFloat(growth) : null,
+      });
+      setCurrentStep(2); // Stay on step 2 to show success
+      // Clear URL params
+      router.replace('/submit', { scroll: false });
+    }
+
+    if (errorParam) {
+      const errorMessages: Record<string, string> = {
+        stripe_not_configured: 'Stripe is not configured. Please try manual verification.',
+        stripe_auth_failed: 'Stripe authorization failed. Please try again.',
+        missing_params: 'Missing parameters. Please try again.',
+        invalid_state: 'Invalid state. Please try again.',
+        no_stripe_user: 'Could not retrieve Stripe account. Please try again.',
+        verification_failed: 'Verification failed. Please try again.',
+      };
+      setError(errorMessages[errorParam] || 'An error occurred. Please try again.');
+      router.replace('/submit', { scroll: false });
+    }
+  }, [searchParams, router]);
+
   const [formData, setFormData] = useState<FormData>({
     name: '',
     tagline: '',
@@ -230,6 +281,74 @@ export default function SubmitStartupPage() {
     }
   };
 
+  // Handle Stripe Connect OAuth
+  const handleStripeConnect = async () => {
+    setIsConnecting('stripe');
+    setError(null);
+
+    try {
+      // First, we need to create a draft startup to get an ID
+      // For now, we'll use a temporary approach - save form data to localStorage
+      // and create the startup after OAuth callback
+      localStorage.setItem('exitasy_draft_startup', JSON.stringify(formData));
+
+      // For OAuth, we need a startupId. We'll create a draft startup first.
+      const draftRes = await fetch('/api/startups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name || 'Draft Startup',
+          tagline: formData.tagline || 'Draft',
+          description: formData.description || 'Draft startup for verification',
+          website: formData.website || 'https://example.com',
+          categories: formData.categories.length > 0 ? formData.categories : ['SaaS'],
+          stage: 'MAKING_MONEY',
+          isDraft: true, // Mark as draft
+        }),
+      });
+
+      if (!draftRes.ok) {
+        const data = await draftRes.json();
+        throw new Error(data.message || 'Failed to create draft startup');
+      }
+
+      const draftStartup = await draftRes.json();
+
+      // Now get the Stripe OAuth URL
+      const res = await fetch(`/api/verify/stripe?startupId=${draftStartup.id}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to get Stripe connect URL');
+      }
+
+      // Redirect to Stripe OAuth
+      window.location.href = data.authUrl;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect Stripe');
+      setIsConnecting(null);
+    }
+  };
+
+  // Handle Paddle Connect OAuth
+  const handlePaddleConnect = async () => {
+    setIsConnecting('paddle');
+    setError(null);
+
+    try {
+      // Paddle uses a different OAuth flow
+      // For now, show a message that it's coming soon
+      // TODO: Implement Paddle OAuth when ready
+      setTimeout(() => {
+        setError('Paddle integration coming soon! Please use Stripe or manual verification.');
+        setIsConnecting(null);
+      }, 1000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect Paddle');
+      setIsConnecting(null);
+    }
+  };
+
   const isStepValid = () => {
     switch (currentStep) {
       case 1:
@@ -241,7 +360,8 @@ export default function SubmitStartupPage() {
           formData.categories.length > 0
         );
       case 2:
-        return formData.verificationMethod !== null;
+        // Valid if verified OR manual verification selected
+        return verificationStatus.verified || formData.verificationMethod === 'manual';
       case 3:
         return formData.stage !== null;
       case 4:
@@ -483,30 +603,58 @@ export default function SubmitStartupPage() {
             {/* Step 2: Revenue Verification */}
             {currentStep === 2 && (
               <>
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                  <p className="text-sm text-yellow-800">
-                    <strong>Note:</strong> Exitasy only lists startups with
-                    verified revenue. Unverified submissions stay in a private
-                    queue until verified.
-                  </p>
-                </div>
+                {/* Success Banner */}
+                {verificationStatus.verified && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="h-6 w-6 text-green-600" />
+                      <div>
+                        <p className="font-semibold text-green-800">
+                          Revenue Verified via {verificationStatus.provider === 'stripe' ? 'Stripe' : 'Paddle'}!
+                        </p>
+                        <p className="text-sm text-green-700">
+                          MRR: ${verificationStatus.mrr?.toLocaleString()}
+                          {verificationStatus.growthMoM !== null && (
+                            <span className="ml-2">
+                              Growth: {verificationStatus.growthMoM > 0 ? '+' : ''}{verificationStatus.growthMoM}% MoM
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!verificationStatus.verified && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Note:</strong> Exitasy only lists startups with
+                      verified revenue. Unverified submissions stay in a private
+                      queue until verified.
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   {/* Stripe */}
                   <div
                     className={cn(
-                      'border-2 rounded-lg p-4 cursor-pointer transition-colors',
-                      formData.verificationMethod === 'stripe'
-                        ? 'border-orange-500 bg-orange-50'
+                      'border-2 rounded-lg p-4 transition-colors',
+                      verificationStatus.verified && verificationStatus.provider === 'stripe'
+                        ? 'border-green-500 bg-green-50'
                         : 'border-gray-200 hover:border-gray-300'
                     )}
-                    onClick={() =>
-                      updateFormData({ verificationMethod: 'stripe' })
-                    }
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <CreditCard className="h-6 w-6 text-purple-600" />
+                      <div className={cn(
+                        'w-12 h-12 rounded-lg flex items-center justify-center',
+                        verificationStatus.provider === 'stripe' ? 'bg-green-100' : 'bg-purple-100'
+                      )}>
+                        {verificationStatus.provider === 'stripe' ? (
+                          <CheckCircle className="h-6 w-6 text-green-600" />
+                        ) : (
+                          <CreditCard className="h-6 w-6 text-purple-600" />
+                        )}
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold">
@@ -520,36 +668,49 @@ export default function SubmitStartupPage() {
                           metrics. Read-only access.
                         </p>
                       </div>
-                      <div
-                        className={cn(
-                          'w-5 h-5 rounded-full border-2',
-                          formData.verificationMethod === 'stripe'
-                            ? 'border-orange-500 bg-orange-500'
-                            : 'border-gray-300'
-                        )}
-                      >
-                        {formData.verificationMethod === 'stripe' && (
-                          <Check className="h-4 w-4 text-white" />
-                        )}
-                      </div>
+                      {verificationStatus.provider === 'stripe' ? (
+                        <Badge className="bg-green-600">Connected</Badge>
+                      ) : (
+                        <Button
+                          onClick={handleStripeConnect}
+                          disabled={isConnecting !== null || verificationStatus.verified}
+                          className="bg-purple-600 hover:bg-purple-700"
+                        >
+                          {isConnecting === 'stripe' ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Connect
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </div>
 
                   {/* Paddle */}
                   <div
                     className={cn(
-                      'border-2 rounded-lg p-4 cursor-pointer transition-colors',
-                      formData.verificationMethod === 'paddle'
-                        ? 'border-orange-500 bg-orange-50'
+                      'border-2 rounded-lg p-4 transition-colors',
+                      verificationStatus.verified && verificationStatus.provider === 'paddle'
+                        ? 'border-green-500 bg-green-50'
                         : 'border-gray-200 hover:border-gray-300'
                     )}
-                    onClick={() =>
-                      updateFormData({ verificationMethod: 'paddle' })
-                    }
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <CreditCard className="h-6 w-6 text-blue-600" />
+                      <div className={cn(
+                        'w-12 h-12 rounded-lg flex items-center justify-center',
+                        verificationStatus.provider === 'paddle' ? 'bg-green-100' : 'bg-blue-100'
+                      )}>
+                        {verificationStatus.provider === 'paddle' ? (
+                          <CheckCircle className="h-6 w-6 text-green-600" />
+                        ) : (
+                          <CreditCard className="h-6 w-6 text-blue-600" />
+                        )}
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold">Connect Paddle</h3>
@@ -557,18 +718,37 @@ export default function SubmitStartupPage() {
                           Connect your Paddle account for automatic verification.
                         </p>
                       </div>
-                      <div
-                        className={cn(
-                          'w-5 h-5 rounded-full border-2',
-                          formData.verificationMethod === 'paddle'
-                            ? 'border-orange-500 bg-orange-500'
-                            : 'border-gray-300'
-                        )}
-                      >
-                        {formData.verificationMethod === 'paddle' && (
-                          <Check className="h-4 w-4 text-white" />
-                        )}
-                      </div>
+                      {verificationStatus.provider === 'paddle' ? (
+                        <Badge className="bg-green-600">Connected</Badge>
+                      ) : (
+                        <Button
+                          onClick={handlePaddleConnect}
+                          disabled={isConnecting !== null || verificationStatus.verified}
+                          variant="outline"
+                        >
+                          {isConnecting === 'paddle' ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Connect
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="relative py-2">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-2 text-muted-foreground">Or</span>
                     </div>
                   </div>
 
@@ -576,13 +756,16 @@ export default function SubmitStartupPage() {
                   <div
                     className={cn(
                       'border-2 rounded-lg p-4 cursor-pointer transition-colors',
-                      formData.verificationMethod === 'manual'
+                      formData.verificationMethod === 'manual' && !verificationStatus.verified
                         ? 'border-orange-500 bg-orange-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-gray-200 hover:border-gray-300',
+                      verificationStatus.verified && 'opacity-50 cursor-not-allowed'
                     )}
-                    onClick={() =>
-                      updateFormData({ verificationMethod: 'manual' })
-                    }
+                    onClick={() => {
+                      if (!verificationStatus.verified) {
+                        updateFormData({ verificationMethod: 'manual' });
+                      }
+                    }}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -591,26 +774,25 @@ export default function SubmitStartupPage() {
                       <div className="flex-1">
                         <h3 className="font-semibold">Manual Verification</h3>
                         <p className="text-sm text-muted-foreground">
-                          Upload screenshots or documents. Reviewed within 48
-                          hours.
+                          Upload screenshots or documents. Reviewed within 48 hours.
                         </p>
                       </div>
                       <div
                         className={cn(
                           'w-5 h-5 rounded-full border-2',
-                          formData.verificationMethod === 'manual'
+                          formData.verificationMethod === 'manual' && !verificationStatus.verified
                             ? 'border-orange-500 bg-orange-500'
                             : 'border-gray-300'
                         )}
                       >
-                        {formData.verificationMethod === 'manual' && (
+                        {formData.verificationMethod === 'manual' && !verificationStatus.verified && (
                           <Check className="h-4 w-4 text-white" />
                         )}
                       </div>
                     </div>
                   </div>
 
-                  {formData.verificationMethod === 'manual' && (
+                  {formData.verificationMethod === 'manual' && !verificationStatus.verified && (
                     <div className="border-2 border-dashed rounded-lg p-8 text-center">
                       <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                       <p className="text-sm text-muted-foreground">
@@ -1020,5 +1202,18 @@ function ChevronUp({ className }: { className?: string }) {
     >
       <polyline points="18 15 12 9 6 15" />
     </svg>
+  );
+}
+
+// Wrap in Suspense for useSearchParams
+export default function SubmitStartupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <SubmitStartupContent />
+    </Suspense>
   );
 }
