@@ -48,8 +48,18 @@ export async function GET() {
                 tagline: true,
                 logo: true,
                 currentMRR: true,
+                growthMoM: true,
                 verificationStatus: true,
                 stage: true,
+                categories: true,
+                createdAt: true,
+                _count: {
+                  select: {
+                    upvotes: true,
+                    comments: true,
+                    guesses: true,
+                  },
+                },
               },
             },
           },
@@ -75,7 +85,12 @@ export async function GET() {
     // Format the response
     const formattedUser = {
       ...user,
-      startups: user.startups.map((sm) => sm.startup),
+      startups: user.startups.map((sm) => ({
+        ...sm.startup,
+        upvoteCount: sm.startup._count?.upvotes || 0,
+        commentCount: sm.startup._count?.comments || 0,
+        guessCount: sm.startup._count?.guesses || 0,
+      })),
     };
 
     return NextResponse.json(formattedUser);
