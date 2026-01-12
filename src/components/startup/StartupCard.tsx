@@ -198,7 +198,7 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
           <button
             onClick={handleUpvote}
             className={cn(
-              'flex flex-col items-center justify-center px-4 py-6 border-r transition-all duration-200 min-w-[80px] relative',
+              'flex flex-col items-center justify-center px-5 py-8 border-r transition-all duration-200 min-w-[100px] relative',
               getUpvoteStyles(),
               isAnimating && 'scale-110',
               // Trending cards get extra visual prominence
@@ -208,9 +208,9 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
             {/* Trending indicator badge */}
             {effectiveVariant === 'trending' && !upvoted && (
               <div className="absolute -top-1 -right-1">
-                <span className="relative flex h-3 w-3">
+                <span className="relative flex h-4 w-4">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-purple-500"></span>
                 </span>
               </div>
             )}
@@ -218,31 +218,31 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
             {isAnimating && upvoted && (
               <div className="absolute inset-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                  <span className="absolute animate-ping h-8 w-8 rounded-full bg-purple-400 opacity-50"></span>
-                  <span className="absolute animate-ping delay-75 h-6 w-6 rounded-full bg-orange-400 opacity-50"></span>
+                  <span className="absolute animate-ping h-10 w-10 rounded-full bg-purple-400 opacity-50"></span>
+                  <span className="absolute animate-ping delay-75 h-8 w-8 rounded-full bg-orange-400 opacity-50"></span>
                 </div>
               </div>
             )}
             <ChevronUp className={cn(
-              'h-7 w-7 transition-transform duration-300',
+              'h-9 w-9 transition-transform duration-300',
               upvoted && 'animate-bounce',
               isAnimating && '-translate-y-2 scale-125',
-              effectiveVariant === 'trending' && !upvoted && 'h-8 w-8'
+              effectiveVariant === 'trending' && !upvoted && 'h-10 w-10'
             )} />
             <span className={cn(
-              'text-xl font-bold mt-1 transition-all duration-300',
+              'text-2xl font-bold mt-1 transition-all duration-300',
               upvoted ? 'text-white' : effectiveVariant === 'sale' ? 'text-gray-500' : 'text-gray-900',
               isAnimating && 'scale-125',
-              effectiveVariant === 'trending' && !upvoted && 'text-2xl text-purple-700'
+              effectiveVariant === 'trending' && !upvoted && 'text-3xl text-purple-700'
             )}>
               {upvoteCount}
             </span>
             <span className={cn(
-              'text-[10px] uppercase tracking-wide mt-0.5',
-              upvoted ? 'opacity-70' : effectiveVariant === 'sale' ? 'opacity-50' : 'opacity-80',
-              effectiveVariant === 'trending' && !upvoted && 'font-semibold text-purple-600'
+              'text-xs uppercase tracking-wide mt-1 font-medium',
+              upvoted ? 'opacity-80' : effectiveVariant === 'sale' ? 'opacity-50' : 'opacity-90',
+              effectiveVariant === 'trending' && !upvoted && 'font-bold text-purple-600'
             )}>
-              {effectiveVariant === 'trending' && !upvoted ? 'VOTE!' : 'upvote'}
+              {effectiveVariant === 'trending' && !upvoted ? 'VOTE!' : 'UPVOTE'}
             </span>
           </button>
 
@@ -285,7 +285,7 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                   {/* Stage Badge - Primary status indicator */}
                   <Badge
                     className={cn(
-                      'text-xs text-white',
+                      'text-sm px-3 py-1 text-white font-semibold shadow-sm',
                       stageConfig.color
                     )}
                   >
@@ -295,20 +295,19 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
                   {/* Verified Badge - Blue for trust/verification */}
                   {startup.verificationStatus === 'VERIFIED' && (
                     <Badge
-                      variant="outline"
-                      className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                      className="text-sm px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-md shadow-blue-200 font-semibold"
                     >
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Verified
+                      <CheckCircle className="h-4 w-4 mr-1.5" />
+                      Verified Revenue
                     </Badge>
                   )}
 
                   {/* For Sale Price - Cyan/Teal for deal info */}
                   {isForSale && startup.askingPrice && (
                     <Badge
-                      variant="outline"
-                      className="text-xs bg-cyan-50 text-cyan-700 border-cyan-200"
+                      className="text-sm px-3 py-1 bg-gradient-to-r from-cyan-500 to-teal-500 text-white border-0 shadow-md shadow-cyan-200 font-semibold"
                     >
+                      <DollarSign className="h-4 w-4 mr-1" />
                       ${(startup.askingPrice / 1000).toFixed(0)}K · {startup.saleMultiple || 0}x
                     </Badge>
                   )}
@@ -316,34 +315,34 @@ export function StartupCard({ startup, showRank = false, variant = 'default' }: 
 
                 {/* Stats Row */}
                 <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-                  {/* MRR */}
+                  {/* MRR - Prominent display */}
                   {startup.currentMRR > 0 && (
-                    <div className="flex items-center gap-1">
-                      <TrendingUp className="h-3.5 w-3.5" />
-                      <span className="font-medium text-foreground">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-full border border-green-200">
+                      <TrendingUp className="h-4 w-4 text-green-600" />
+                      <span className="font-bold text-lg text-green-700">
                         {formatMRR(startup.currentMRR)}
                       </span>
-                      <span>MRR</span>
+                      <span className="text-green-600 font-medium">/mo</span>
                     </div>
                   )}
 
                   {/* Growth */}
                   {startup.growthMoM > 0 && (
-                    <span className="text-green-600 font-medium">
+                    <span className="text-green-600 font-bold text-base bg-green-50 px-2 py-0.5 rounded">
                       +{startup.growthMoM}%
                     </span>
                   )}
 
                   {/* Comments */}
                   <div className="flex items-center gap-1">
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    <span>{startup._count?.comments ?? startup.commentCount ?? 0}</span>
+                    <MessageSquare className="h-4 w-4" />
+                    <span className="font-medium">{startup._count?.comments ?? startup.commentCount ?? 0}</span>
                   </div>
 
                   {/* Guesses */}
                   <div className="flex items-center gap-1">
-                    <Gamepad2 className="h-3.5 w-3.5" />
-                    <span>{startup._count?.guesses ?? startup.guessCount ?? 0} guesses</span>
+                    <Gamepad2 className="h-4 w-4" />
+                    <span className="font-medium">{startup._count?.guesses ?? startup.guessCount ?? 0} guesses</span>
                   </div>
                 </div>
 
