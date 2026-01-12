@@ -4,12 +4,7 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import Stripe from 'stripe';
 
-// Only initialize Stripe if the key is available
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY)
-  : null;
-
-// POST /api/verify/stripe - Verify revenue via Stripe
+// POST /api/verify/stripe - Verify revenue via Stripe API Key
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -21,11 +16,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const { startupId, stripeAccountId } = await req.json();
+    const { startupId, apiKey } = await req.json();
 
-    if (!startupId || !stripeAccountId) {
+    if (!startupId || !apiKey) {
       return NextResponse.json(
         { message: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Validate API key format
+    if (!apiKey.startsWith('sk_') && !apiKey.startsWith('rk_')) {
+      return NextResponse.json(
+        { message: 'Invalid Stripe API key format. Use a Secret Key (sk_) or Restricted Key (rk_).' },
         { status: 400 }
       );
     }
@@ -58,24 +61,17 @@ export async function POST(req: Request) {
     }
 
     try {
-      if (!stripe) {
-        return NextResponse.json(
-          { message: 'Stripe is not configured' },
-          { status: 503 }
-        );
-      }
+      // Initialize Stripe with user's API key
+      const userStripe = new Stripe(apiKey);
 
       // Get Stripe balance transactions for the last 30 days
       const thirtyDaysAgo = Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60;
 
-      const balanceTransactions = await stripe.balanceTransactions.list(
-        {
-          created: { gte: thirtyDaysAgo },
-          limit: 100,
-          type: 'charge',
-        },
-        { stripeAccount: stripeAccountId }
-      );
+      const balanceTransactions = await userStripe.balanceTransactions.list({
+        created: { gte: thirtyDaysAgo },
+        limit: 100,
+        type: 'charge',
+      });
 
       // Calculate revenue
       const revenue30d = balanceTransactions.data.reduce(
@@ -88,14 +84,11 @@ export async function POST(req: Request) {
 
       // Get previous month's revenue for growth calculation
       const sixtyDaysAgo = thirtyDaysAgo - 30 * 24 * 60 * 60;
-      const previousTransactions = await stripe.balanceTransactions.list(
-        {
-          created: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
-          limit: 100,
-          type: 'charge',
-        },
-        { stripeAccount: stripeAccountId }
-      );
+      const previousTransactions = await userStripe.balanceTransactions.list({
+        created: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
+        limit: 100,
+        type: 'charge',
+      });
 
       const previousRevenue = previousTransactions.data.reduce(
         (sum, txn) => sum + txn.amount,
@@ -137,54 +130,16 @@ export async function POST(req: Request) {
         growthMoM: Math.round(growthMoM * 10) / 10,
         startup: updatedStartup,
       });
-    } catch (stripeError) {
+    } catch (stripeError: unknown) {
       console.error('Stripe API error:', stripeError);
+      const errorMessage = stripeError instanceof Error ? stripeError.message : 'Failed to verify Stripe account';
       return NextResponse.json(
-        { message: 'Failed to verify Stripe account' },
+        { message: errorMessage },
         { status: 400 }
       );
     }
   } catch (error) {
     console.error('Error verifying revenue:', error);
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-// GET /api/verify/stripe/connect - Get Stripe Connect URL
-export async function GET(req: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const { searchParams } = new URL(req.url);
-    const startupId = searchParams.get('startupId');
-
-    if (!startupId) {
-      return NextResponse.json(
-        { message: 'Startup ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Create Stripe OAuth link
-    const state = Buffer.from(
-      JSON.stringify({ userId: session.user.id, startupId })
-    ).toString('base64');
-
-    const authUrl = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${process.env.STRIPE_CLIENT_ID}&scope=read_only&state=${state}`;
-
-    return NextResponse.json({ authUrl });
-  } catch (error) {
-    console.error('Error generating Stripe connect URL:', error);
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }

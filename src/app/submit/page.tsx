@@ -145,7 +145,9 @@ function SubmitStartupContent() {
   const [isConnecting, setIsConnecting] = useState<'stripe' | 'paddle' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPaddleModal, setShowPaddleModal] = useState(false);
+  const [showStripeModal, setShowStripeModal] = useState(false);
   const [paddleApiKey, setPaddleApiKey] = useState('');
+  const [stripeApiKey, setStripeApiKey] = useState('');
   const [draftStartupId, setDraftStartupId] = useState<string | null>(null);
 
   // Verification state
@@ -282,51 +284,110 @@ function SubmitStartupContent() {
     }
   };
 
-  // Handle Stripe Connect OAuth
+  // Handle Stripe Connect - opens modal for API key
   const handleStripeConnect = async () => {
+    setError(null);
+
+    // First create draft startup if needed
+    if (!draftStartupId) {
+      try {
+        const draftRes = await fetch('/api/startups', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name || 'Draft Startup',
+            tagline: formData.tagline || 'Draft',
+            description: formData.description || 'Draft startup for verification',
+            website: formData.website || 'https://example.com',
+            categories: formData.categories.length > 0 ? formData.categories : ['SaaS'],
+            stage: 'MAKING_MONEY',
+            isDraft: true,
+          }),
+        });
+
+        if (!draftRes.ok) {
+          const data = await draftRes.json();
+          throw new Error(data.message || 'Failed to create draft startup');
+        }
+
+        const draftStartup = await draftRes.json();
+        setDraftStartupId(draftStartup.id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to prepare for verification');
+        return;
+      }
+    }
+
+    setShowStripeModal(true);
+  };
+
+  // Submit Stripe API Key for verification
+  const handleStripeSubmit = async () => {
+    if (!stripeApiKey.trim()) {
+      setError('Please enter your Stripe API key');
+      return;
+    }
+
     setIsConnecting('stripe');
     setError(null);
 
     try {
-      // First, we need to create a draft startup to get an ID
-      // For now, we'll use a temporary approach - save form data to localStorage
-      // and create the startup after OAuth callback
-      localStorage.setItem('exitasy_draft_startup', JSON.stringify(formData));
+      // Create draft startup if not already created
+      let startupId = draftStartupId;
 
-      // For OAuth, we need a startupId. We'll create a draft startup first.
-      const draftRes = await fetch('/api/startups', {
+      if (!startupId) {
+        const draftRes = await fetch('/api/startups', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name || 'Draft Startup',
+            tagline: formData.tagline || 'Draft',
+            description: formData.description || 'Draft startup for verification',
+            website: formData.website || 'https://example.com',
+            categories: formData.categories.length > 0 ? formData.categories : ['SaaS'],
+            stage: 'MAKING_MONEY',
+            isDraft: true,
+          }),
+        });
+
+        if (!draftRes.ok) {
+          const data = await draftRes.json();
+          throw new Error(data.message || 'Failed to create draft startup');
+        }
+
+        const draftStartup = await draftRes.json();
+        startupId = draftStartup.id;
+        setDraftStartupId(startupId);
+      }
+
+      // Call Stripe verification API
+      const res = await fetch('/api/verify/stripe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: formData.name || 'Draft Startup',
-          tagline: formData.tagline || 'Draft',
-          description: formData.description || 'Draft startup for verification',
-          website: formData.website || 'https://example.com',
-          categories: formData.categories.length > 0 ? formData.categories : ['SaaS'],
-          stage: 'MAKING_MONEY',
-          isDraft: true, // Mark as draft
+          startupId,
+          apiKey: stripeApiKey,
         }),
       });
 
-      if (!draftRes.ok) {
-        const data = await draftRes.json();
-        throw new Error(data.message || 'Failed to create draft startup');
-      }
-
-      const draftStartup = await draftRes.json();
-
-      // Now get the Stripe OAuth URL
-      const res = await fetch(`/api/verify/stripe?startupId=${draftStartup.id}`);
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || 'Failed to get Stripe connect URL');
+        throw new Error(data.message || 'Failed to verify Stripe account');
       }
 
-      // Redirect to Stripe OAuth
-      window.location.href = data.authUrl;
+      // Success!
+      setVerificationStatus({
+        verified: true,
+        provider: 'stripe',
+        mrr: data.mrr,
+        growthMoM: data.growthMoM,
+      });
+      setShowStripeModal(false);
+      setStripeApiKey('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect Stripe');
+    } finally {
       setIsConnecting(null);
     }
   };
@@ -950,6 +1011,75 @@ function SubmitStartupContent() {
                             disabled={isConnecting === 'paddle' || !paddleApiKey.trim()}
                           >
                             {isConnecting === 'paddle' ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Verifying...
+                              </>
+                            ) : (
+                              'Verify Revenue'
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {/* Stripe API Key Modal */}
+                {showStripeModal && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <Card className="w-full max-w-md mx-4">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <CreditCard className="h-5 w-5 text-purple-600" />
+                          Connect Stripe
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                          <p className="text-sm text-purple-800">
+                            Enter your Stripe Secret Key or Restricted Key to verify your revenue. We only need read access to balance transactions.
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Stripe API Key</label>
+                          <Input
+                            type="password"
+                            placeholder="sk_live_... or rk_live_..."
+                            value={stripeApiKey}
+                            onChange={(e) => setStripeApiKey(e.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Find it in Stripe Dashboard → Developers → API keys
+                          </p>
+                        </div>
+
+                        {error && (
+                          <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                            <p className="text-sm text-red-800">{error}</p>
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => {
+                              setShowStripeModal(false);
+                              setStripeApiKey('');
+                              setError(null);
+                            }}
+                            disabled={isConnecting === 'stripe'}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            className="flex-1 bg-purple-600 hover:bg-purple-700"
+                            onClick={handleStripeSubmit}
+                            disabled={isConnecting === 'stripe' || !stripeApiKey.trim()}
+                          >
+                            {isConnecting === 'stripe' ? (
                               <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                 Verifying...
