@@ -85,12 +85,25 @@ export async function GET() {
     // Format the response
     const formattedUser = {
       ...user,
-      startups: user.startups.map((sm) => ({
-        ...sm.startup,
-        upvoteCount: sm.startup._count?.upvotes || 0,
-        commentCount: sm.startup._count?.comments || 0,
-        guessCount: sm.startup._count?.guesses || 0,
-      })),
+      startups: user.startups.map((sm) => {
+        // Parse categories JSON string to array
+        let categories: string[] = [];
+        try {
+          categories = typeof sm.startup.categories === 'string'
+            ? JSON.parse(sm.startup.categories)
+            : sm.startup.categories || [];
+        } catch {
+          categories = [];
+        }
+
+        return {
+          ...sm.startup,
+          categories,
+          upvoteCount: sm.startup._count?.upvotes || 0,
+          commentCount: sm.startup._count?.comments || 0,
+          guessCount: sm.startup._count?.guesses || 0,
+        };
+      }),
     };
 
     return NextResponse.json(formattedUser);
