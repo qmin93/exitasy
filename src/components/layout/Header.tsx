@@ -69,11 +69,6 @@ export function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
-            <Link href="/today">
-              <Button variant="ghost" size="sm">
-                Today
-              </Button>
-            </Link>
             <Link href="/">
               <Button variant="ghost" size="sm">
                 Browse
@@ -82,21 +77,6 @@ export function Header() {
             <Link href="/for-sale">
               <Button variant="ghost" size="sm">
                 For Sale
-              </Button>
-            </Link>
-            <Link href="/stories">
-              <Button variant="ghost" size="sm">
-                Stories
-              </Button>
-            </Link>
-            <Link href="/leaderboard">
-              <Button variant="ghost" size="sm">
-                Leaderboard
-              </Button>
-            </Link>
-            <Link href="/forum">
-              <Button variant="ghost" size="sm">
-                Forum
               </Button>
             </Link>
           </nav>

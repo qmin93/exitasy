@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { TrendingUp, Target, CheckCircle, DollarSign, Users, Sparkles } from 'lucide-react';
+import { TrendingUp, CheckCircle, DollarSign, Users, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -33,14 +33,6 @@ interface ForSaleStartup {
   saleMultiple: number | null;
 }
 
-interface TopGuesser {
-  rank: number;
-  id: string;
-  name: string | null;
-  username: string | null;
-  image: string | null;
-  accuracy: number;
-}
 
 interface VerifiedStartup {
   id: string;
@@ -75,7 +67,6 @@ function SidebarSkeleton() {
 export function Sidebar() {
   const [trendingStartups, setTrendingStartups] = useState<TrendingStartup[]>([]);
   const [forSaleStartups, setForSaleStartups] = useState<ForSaleStartup[]>([]);
-  const [topGuessers, setTopGuessers] = useState<TopGuesser[]>([]);
   const [recentlyVerified, setRecentlyVerified] = useState<VerifiedStartup[]>([]);
   const [activeBuyers, setActiveBuyers] = useState<ActiveBuyer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,10 +75,9 @@ export function Sidebar() {
     async function fetchSidebarData() {
       setIsLoading(true);
       try {
-        const [trendingRes, forSaleRes, leaderboardRes, verifiedRes, buyersRes] = await Promise.all([
+        const [trendingRes, forSaleRes, verifiedRes, buyersRes] = await Promise.all([
           fetch('/api/trending?limit=5&period=7d'),
           fetch('/api/startups?forSale=true&limit=3'),
-          fetch('/api/leaderboard?limit=3'),
           fetch('/api/startups?sort=latest&limit=3'),
           fetch('/api/buyers/active?limit=5'),
         ]);
@@ -100,11 +90,6 @@ export function Sidebar() {
         if (forSaleRes.ok) {
           const data = await forSaleRes.json();
           setForSaleStartups(data.startups || []);
-        }
-
-        if (leaderboardRes.ok) {
-          const data = await leaderboardRes.json();
-          setTopGuessers(data.users || []);
         }
 
         if (verifiedRes.ok) {
@@ -194,58 +179,6 @@ export function Sidebar() {
         </CardContent>
       </Card>
 
-      {/* Top Guessers - Compact */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <div className="p-1.5 rounded-lg bg-muted">
-              <Target className="h-4 w-4 text-purple-500" />
-            </div>
-            <span>Top Guessers</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 pt-0">
-          {isLoading ? (
-            <SidebarSkeleton />
-          ) : topGuessers.length > 0 ? (
-            <>
-              {topGuessers.map((guesser) => (
-                <Link
-                  key={guesser.id}
-                  href={`/user/${guesser.username}`}
-                  className="flex items-center justify-between hover:bg-muted/50 -mx-2 px-2 py-1 rounded-md transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs w-4">
-                      {guesser.rank === 1 && '🥇'}
-                      {guesser.rank === 2 && '🥈'}
-                      {guesser.rank === 3 && '🥉'}
-                    </span>
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage src={guesser.image || undefined} />
-                      <AvatarFallback className="text-[10px]">
-                        {(guesser.username || 'U').slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium text-sm truncate max-w-[100px]">@{guesser.username}</span>
-                  </div>
-                  <Badge variant="outline" className="text-[10px] text-green-600 border-green-200">
-                    {guesser.accuracy?.toFixed(0)}%
-                  </Badge>
-                </Link>
-              ))}
-              <Link
-                href="/leaderboard"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors block mt-1 text-center"
-              >
-                See leaderboard →
-              </Link>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">No guessers yet</p>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Hot Deal Signals - Highest buyer intent */}
       <Card className={hasHotDeals ? 'border-green-200 bg-green-50/30' : ''}>
