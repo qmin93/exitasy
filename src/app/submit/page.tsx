@@ -30,8 +30,6 @@ import { cn } from '@/lib/utils';
 const STEPS = [
   { id: 1, title: 'Basic Info', icon: FileText },
   { id: 2, title: 'Revenue', icon: CreditCard },
-  { id: 3, title: 'Stage', icon: Check },
-  { id: 4, title: 'Launch', icon: Rocket },
 ];
 
 const CATEGORIES = [
@@ -66,7 +64,7 @@ interface FormData {
   categories: string[];
 
   // Step 2
-  verificationMethod: 'stripe' | 'paddle' | 'manual' | null;
+  verificationMethod: 'stripe' | 'paddle' | 'manual' | 'skip' | null;
   proofFile: string | null;
 
   // Step 3
@@ -446,18 +444,12 @@ function SubmitStartupContent() {
       case 1:
         return (
           formData.name.length > 0 &&
-          formData.tagline.length > 0 &&
-          formData.description.length > 0 &&
           formData.website.length > 0 &&
           formData.categories.length > 0
         );
       case 2:
-        // Valid if verified OR manual verification selected
-        return verificationStatus.verified || formData.verificationMethod === 'manual';
-      case 3:
-        return formData.stage !== null;
-      case 4:
-        return true;
+        return verificationStatus.verified || formData.verificationMethod === 'manual' || formData.verificationMethod === 'skip';
+      
       default:
         return false;
     }
@@ -468,42 +460,13 @@ function SubmitStartupContent() {
     setError(null);
 
     try {
-      // Convert stage to API format (uppercase with underscores)
-      const stageMap: Record<string, string> = {
-        making_money: 'MAKING_MONEY',
-        exit_ready: 'EXIT_READY',
-        acquisition_interest: 'ACQUISITION_INTEREST',
-        for_sale: 'FOR_SALE',
-        sold: 'SOLD',
-      };
-
-      // Combine founder note sections into a single formatted string
-      const founderNoteText = FOUNDER_NOTE_SECTIONS
-        .map((section) => {
-          const content = formData.founderNote[section.key];
-          if (!content?.trim()) return null;
-          return `${section.emoji} ${section.title}\n${content}`;
-        })
-        .filter(Boolean)
-        .join('\n\n');
-
       const payload = {
         name: formData.name,
-        tagline: formData.tagline,
-        description: formData.description,
+        tagline: formData.name,
+        description: formData.name + ' - submitted via quick form',
         website: formData.website,
-        logo: formData.logo,
-        screenshots: formData.screenshots,
-        videoUrl: formData.videoUrl || null,
         categories: formData.categories,
-        stage: formData.stage ? stageMap[formData.stage] || formData.stage : 'MAKING_MONEY',
-        askingPrice: formData.askingPrice ? parseInt(formData.askingPrice.replace(/[^0-9]/g, '')) : null,
-        saleIncludes: formData.includes,
-        saleReason: formData.sellReason || null,
-        sellabilityReasons: formData.sellabilityReasons.filter((r) => r.trim() !== ''),
-        targetUsers: formData.targetUsers || null,
-        monetizationModel: formData.monetizationModel || null,
-        founderNote: founderNoteText || null,
+        stage: 'MAKING_MONEY',
       };
 
       const res = await fetch('/api/startups', {
@@ -534,10 +497,8 @@ function SubmitStartupContent() {
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Add Your Startup to Exitasy</h1>
-          <p className="text-muted-foreground">
-            Share your verified revenue and join the community of money makers.
-          </p>
+          <h1 className="text-3xl font-bold mb-2">Add Your Startup</h1>
+          <p className="text-muted-foreground">Quick setup - add more details later in your dashboard</p>
         </div>
 
         {/* Progress */}
@@ -893,6 +854,45 @@ function SubmitStartupContent() {
                       </p>
                     </div>
                   )}
+                  {/* Skip */}
+                  <div
+                    className={cn(
+                      'border-2 rounded-lg p-4 cursor-pointer transition-colors',
+                      formData.verificationMethod === 'skip' && !verificationStatus.verified
+                        ? 'border-gray-500 bg-gray-50'
+                        : 'border-gray-200 hover:border-gray-300',
+                      verificationStatus.verified && 'opacity-50 cursor-not-allowed'
+                    )}
+                    onClick={() => {
+                      if (!verificationStatus.verified) {
+                        updateFormData({ verificationMethod: 'skip' });
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <ArrowRight className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-500">Skip for now</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Add revenue verification later in your dashboard.
+                        </p>
+                      </div>
+                      <div
+                        className={cn(
+                          'w-5 h-5 rounded-full border-2',
+                          formData.verificationMethod === 'skip' && !verificationStatus.verified
+                            ? 'border-gray-500 bg-gray-500'
+                            : 'border-gray-300'
+                        )}
+                      >
+                        {formData.verificationMethod === 'skip' && !verificationStatus.verified && (
+                          <Check className="h-4 w-4 text-white" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Paddle API Key Modal */}
@@ -1344,6 +1344,10 @@ function SubmitStartupContent() {
             </div>
           </CardContent>
         </Card>
+      
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          You can add logo, description, screenshots and more in your dashboard after submitting.
+        </p>
       </main>
     </div>
   );
