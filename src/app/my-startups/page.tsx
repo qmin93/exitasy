@@ -90,6 +90,33 @@ export default function MyStartupsPage() {
   const router = useRouter();
   const [startups, setStartups] = useState<MyStartup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
+
+  const handleDelete = async (slug: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingSlug(slug);
+    try {
+      const res = await fetch(`/api/startups/${slug}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Failed to delete');
+      }
+
+      // Remove from local state
+      setStartups((prev) => prev.filter((s) => s.slug !== slug));
+    } catch (err) {
+      console.error('Error deleting startup:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete startup');
+    } finally {
+      setDeletingSlug(null);
+    }
+  };
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -204,8 +231,16 @@ export default function MyStartupsPage() {
                                 Edit
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
-                              <Trash2 className="h-4 w-4 mr-2" />
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => handleDelete(startup.slug, startup.name)}
+                              disabled={deletingSlug === startup.slug}
+                            >
+                              {deletingSlug === startup.slug ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4 mr-2" />
+                              )}
                               Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
