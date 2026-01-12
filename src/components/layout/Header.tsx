@@ -68,18 +68,6 @@ export function Header() {
             <span className="text-xl font-bold">Exitasy</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
-            <Link href="/">
-              <Button variant="ghost" size="sm">
-                Browse
-              </Button>
-            </Link>
-            <Link href="/for-sale">
-              <Button variant="ghost" size="sm">
-                For Sale
-              </Button>
-            </Link>
-          </nav>
         </div>
 
         {/* Search & Actions */}
