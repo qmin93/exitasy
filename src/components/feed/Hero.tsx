@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Search, Rocket, TrendingUp, CheckCircle, Users, Zap, HelpCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -58,7 +59,25 @@ const TRUST_BADGES = [
 ];
 
 export function Hero() {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim().length >= 2) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const handleCategoryClick = (category: string) => {
+    if (selectedCategory === category) {
+      setSelectedCategory(null);
+    } else {
+      setSelectedCategory(category);
+      router.push(`/search?q=${encodeURIComponent(category)}`);
+    }
+  };
 
   return (
     <div className="bg-gradient-to-b from-orange-50 to-white border-b">
@@ -107,14 +126,14 @@ export function Hero() {
           </TooltipProvider>
 
           {/* Primary CTA - Submit Startup */}
-          <div className="flex flex-col items-center gap-2 mb-8">
-            <div className="flex items-center justify-center gap-3">
+          <div className="flex flex-col items-center gap-3 mb-8">
+            <div className="flex items-center justify-center gap-4">
               <Link href="/submit">
                 <Button
                   size="lg"
-                  className="h-12 px-8 text-base font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-200 gap-2"
+                  className="h-16 px-12 text-xl font-semibold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-200 gap-3"
                 >
-                  <Rocket className="h-5 w-5" />
+                  <Rocket className="h-7 w-7" />
                   Submit Your Startup
                 </Button>
               </Link>
@@ -122,25 +141,35 @@ export function Hero() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="h-12 px-6 text-base border-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700"
+                  className="h-16 px-10 text-xl font-semibold border-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700"
                 >
                   Browse Deals
                 </Button>
               </Link>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Get discovered by verified buyers.
             </p>
           </div>
 
           {/* Search Bar */}
-          <div className="relative max-w-xl mx-auto mb-6">
+          <form onSubmit={handleSearchSubmit} className="relative max-w-xl mx-auto mb-6">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               placeholder="Search startups, founders, categories..."
-              className="w-full h-12 pl-12 text-base rounded-full border-2 focus-visible:ring-orange-500"
+              className="w-full h-12 pl-12 pr-24 text-base rounded-full border-2 focus-visible:ring-orange-500"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-          </div>
+            <Button
+              type="submit"
+              size="sm"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-orange-500 hover:bg-orange-600 rounded-full px-4"
+              disabled={searchQuery.trim().length < 2}
+            >
+              Search
+            </Button>
+          </form>
 
           {/* Category Chips */}
           <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -154,11 +183,7 @@ export function Hero() {
                     ? 'bg-orange-500 hover:bg-orange-600'
                     : 'hover:bg-orange-50 hover:border-orange-200'
                 )}
-                onClick={() =>
-                  setSelectedCategory(
-                    selectedCategory === category ? null : category
-                  )
-                }
+                onClick={() => handleCategoryClick(category)}
               >
                 {category}
               </Badge>

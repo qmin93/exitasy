@@ -33,19 +33,19 @@ export async function GET(req: Request) {
     // Search startups
     let startups: unknown[] = [];
     if (type === 'all' || type === 'startups') {
-      // Build where conditions
+      // Build where conditions - search all startups (not just verified)
       const whereConditions: Prisma.StartupWhereInput = {
         OR: [
-          { name: { contains: searchTerm } },
-          { tagline: { contains: searchTerm } },
-          { description: { contains: searchTerm } },
+          { name: { contains: searchTerm, mode: 'insensitive' } },
+          { tagline: { contains: searchTerm, mode: 'insensitive' } },
+          { description: { contains: searchTerm, mode: 'insensitive' } },
+          { categories: { contains: searchTerm, mode: 'insensitive' } },
         ],
-        verificationStatus: 'VERIFIED',
       };
 
       // Apply filters
       if (category) {
-        whereConditions.categories = { contains: category };
+        whereConditions.categories = { contains: category, mode: 'insensitive' };
       }
       if (minMRR) {
         whereConditions.currentMRR = {
@@ -116,9 +116,9 @@ export async function GET(req: Request) {
       users = await prisma.user.findMany({
         where: {
           OR: [
-            { name: { contains: searchTerm } },
-            { username: { contains: searchTerm } },
-            { bio: { contains: searchTerm } },
+            { name: { contains: searchTerm, mode: 'insensitive' } },
+            { username: { contains: searchTerm, mode: 'insensitive' } },
+            { bio: { contains: searchTerm, mode: 'insensitive' } },
           ],
         },
         take: limit,
