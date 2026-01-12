@@ -244,9 +244,27 @@ export async function DELETE(req: Request, context: RouteContext) {
       );
     }
 
-    // Delete by id instead of slug for reliability
-    await prisma.startup.delete({
-      where: { id: startup.id },
+    // Delete all related data in transaction
+    await prisma.$transaction(async (tx) => {
+      // Delete related records first
+      await tx.trendingSnapshot.deleteMany({ where: { startupId: startup.id } });
+      await tx.trendScore.deleteMany({ where: { startupId: startup.id } });
+      await tx.dealMessage.deleteMany({
+        where: { dealRoom: { startupId: startup.id } }
+      });
+      await tx.dealRoom.deleteMany({ where: { startupId: startup.id } });
+      await tx.buyerAccessRequest.deleteMany({ where: { startupId: startup.id } });
+      await tx.buyerInterest.deleteMany({ where: { startupId: startup.id } });
+      await tx.guess.deleteMany({ where: { startupId: startup.id } });
+      await tx.comment.deleteMany({ where: { startupId: startup.id } });
+      await tx.upvote.deleteMany({ where: { startupId: startup.id } });
+      await tx.follow.deleteMany({ where: { startupId: startup.id } });
+      await tx.eventLog.deleteMany({ where: { startupId: startup.id } });
+      await tx.revenueSnapshot.deleteMany({ where: { startupId: startup.id } });
+      await tx.startupMaker.deleteMany({ where: { startupId: startup.id } });
+
+      // Finally delete the startup
+      await tx.startup.delete({ where: { id: startup.id } });
     });
 
     return NextResponse.json({ success: true, message: 'Startup deleted' });
