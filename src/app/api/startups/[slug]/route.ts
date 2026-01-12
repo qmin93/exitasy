@@ -244,15 +244,17 @@ export async function DELETE(req: Request, context: RouteContext) {
       );
     }
 
+    // Delete by id instead of slug for reliability
     await prisma.startup.delete({
-      where: { slug },
+      where: { id: startup.id },
     });
 
-    return NextResponse.json({ message: 'Startup deleted' });
+    return NextResponse.json({ success: true, message: 'Startup deleted' });
   } catch (error) {
     console.error('Error deleting startup:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { success: false, message: errorMessage },
       { status: 500 }
     );
   }

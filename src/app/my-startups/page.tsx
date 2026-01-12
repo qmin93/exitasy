@@ -104,8 +104,15 @@ export default function MyStartupsPage() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Failed to delete');
+        // Try to parse error message, fallback if empty response
+        let errorMessage = 'Failed to delete';
+        try {
+          const data = await res.json();
+          errorMessage = data.message || errorMessage;
+        } catch {
+          // Response might be empty or not JSON
+        }
+        throw new Error(errorMessage);
       }
 
       // Remove from local state
